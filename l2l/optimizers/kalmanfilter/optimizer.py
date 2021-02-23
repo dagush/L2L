@@ -20,7 +20,7 @@ logger = logging.getLogger("optimizers.kalmanfilter")
 EnsembleKalmanFilterParameters = namedtuple(
     'EnsembleKalmanFilter', ['gamma', 'maxit', 'n_iteration',
                              'pop_size', 'n_batches', 'online', 'seed', 'path',
-                             'stop_criterion',
+                             'n_repeat_batch', 'stop_criterion',
                              'scale_weights', 'sample',
                              'best_n', 'worst_n', 'pick_method',
                              'kwargs'],
@@ -35,7 +35,8 @@ EnsembleKalmanFilterParameters.__doc__ = """
 :param pop_size: int, Minimal number of individuals per simulation.
     Corresponds to number of ensembles
 :param n_batches: int, Number of mini-batches to use for training
-:param online: bool, Indicates if only one data point will used, 
+:param n_repeat_batch: int, How often the same image batch should be shown
+:param online: bool, Indicates if only one data point will used
     Default: False
 :param scale_weights: bool, scales weights between [0, 1]
 :param sampling: bool, If sampling of best individuals should be done
@@ -96,10 +97,8 @@ class EnsembleKalmanFilter(Optimizer):
         traj.f_add_parameter('n_iteration', parameters.n_iteration,
                              comment='Number of iterations to run')
         traj.f_add_parameter('n_batches', parameters.n_batches)
+        traj.f_add_parameter('n_repeat_batch', parameters.n_repeat_batch)
         traj.f_add_parameter('online', parameters.online)
-        # TODO reactivate?
-        # traj.f_add_parameter('sampling_generation',
-        #                      parameters.sampling_generation)
         traj.f_add_parameter('seed', np.uint32(parameters.seed),
                              comment='Seed used for random number generation '
                                      'in optimizer')
@@ -172,6 +171,8 @@ class EnsembleKalmanFilter(Optimizer):
                 self.train_labels, size=traj.n_batches)
         else:
             raise AttributeError('Train Labels are not set, please check.')
+        logger.info('First dataset is set. Targets are {}'.format(
+            self.optimizee_labels))
 
         for e in self.eval_pop:
             e["targets"] = self.optimizee_labels
@@ -203,7 +204,7 @@ class EnsembleKalmanFilter(Optimizer):
     def post_process(self, traj, fitnesses_results):
         self.eval_pop.clear()
 
-        individuals = traj.individuals[traj.generation]
+        individuals = traj.individuals[self.g]
         gamma = np.eye(len(self.target_label)) * traj.gamma
 
         ensemble_size = traj.pop_size
@@ -221,10 +222,10 @@ class EnsembleKalmanFilter(Optimizer):
 
         ens = np.array(weights)
         if traj.scale_weights:
-            ens = (ens - ens.min()) / (ens.max() - ens.min())
+            # (ens - ens.min()) / (ens.max() - ens.min())
+            ens = ens / np.abs(ens).max()
             # ens, scaler = self._scale_weights(weights, normalize=True,
             #                                   method=pp.MinMaxScaler)
-
         # sampling step
         if traj.sample:
             ens = self.sample_from_individuals(individuals=ens,
@@ -232,10 +233,11 @@ class EnsembleKalmanFilter(Optimizer):
                                                sampling_method=traj.sampling_method,
                                                pick_method=traj.pick_method,
                                                best_n=traj.best_n,
-                                               worst_n=traj.worst_n,
+                                               worst_n=traj.worst_n /
+                                               np.exp(self.g %
+                                                      traj.n_repeat_batch),
                                                **traj.kwargs
                                                )
-
         model_outs = np.array([traj.current_results[i][1]['model_out'] for i in
                                range(ensemble_size)])
         model_outs = model_outs.reshape((ensemble_size,
@@ -248,7 +250,8 @@ class EnsembleKalmanFilter(Optimizer):
         logger.info(
             'Best fitness {} in generation {}'.format(self.current_fitness,
                                                       self.g))
-        logger.info('Best 10 individuals index {}'.format(best_indviduals[:10]))
+        logger.info('Best individuals index {}'.format(best_indviduals))
+        logger.info('Mean of individuals {}'.format(np.mean(current_res)))
         self.best_individual.append((best_indviduals[0], current_res[0]))
 
         enkf = EnKF(maxit=traj.maxit,
@@ -263,9 +266,11 @@ class EnsembleKalmanFilter(Optimizer):
         results = enkf.ensemble.cpu().numpy()
         if traj.scale_weights:
             # rescale
-            results = results * (np.max(weights) - np.min(weights)) + np.min(weights)
+            # (np.max(weights) - np.min(weights)) + np.min(weights)
+            results = results * np.abs(weights).max()
             # scaler.inverse_transform(results)
-        self.plot_distribution(weights=results, gen=self.g, mean=True)
+        # self.plot_distribution(weights=results, gen=self.g, mean=True)
+
         if self.g % 1 == 0:
             self.weights_to_save.append(results)
 
@@ -284,9 +289,9 @@ class EnsembleKalmanFilter(Optimizer):
             # Create new individual based on the results of the update from the EnKF.
             new_individual_list = [
                 {'weights_eeo': results[i][:len(individuals[i].weights_eeo)],
-                 'weights_eio': results[i][:len(individuals[i].weights_eio)],
-                 'weights_ieo': results[i][:len(individuals[i].weights_ieo)],
-                 'weights_iio': results[i][:len(individuals[i].weights_iio)],
+                 'weights_eio': results[i][len(individuals[i].weights_eeo):len(individuals[i].weights_eio) + len(individuals[i].weights_eeo)],
+                 'weights_ieo': results[i][len(individuals[i].weights_eeo) + len(individuals[i].weights_eio):len(individuals[i].weights_ieo) + len(individuals[i].weights_eeo) + len(individuals[i].weights_eio)],
+                 'weights_iio': results[i][len(individuals[i].weights_eeo) + len(individuals[i].weights_eio) + len(individuals[i].weights_ieo):len(individuals[i].weights_iio) + len(individuals[i].weights_eeo) + len(individuals[i].weights_eio) + len(individuals[i].weights_ieo)],
                  'train_set': self.train_set,
                  'targets': self.optimizee_labels} for i in
                 range(ensemble_size)]
@@ -298,6 +303,15 @@ class EnsembleKalmanFilter(Optimizer):
 
             fitnesses_results.clear()
             self.eval_pop = new_individual_list
+            if self.g % traj.n_repeat_batch == 0 and self.g > 0:
+                logger.info('Changing dataset in generation {}'.format(self.g))
+                self.optimizee_labels, self.random_ids = self.randomize_labels(
+                    self.train_labels, size=traj.n_batches)
+                logger.info('New targets are {}'.format(self.optimizee_labels))
+                for e in self.eval_pop:
+                    e["targets"] = self.optimizee_labels
+                    e["train_set"] = [self.train_set[r]
+                                      for r in self.random_ids]
             self.g += 1  # Update generation counter
             self._expand_trajectory(traj)
 
@@ -356,7 +370,7 @@ class EnsembleKalmanFilter(Optimizer):
         best_individuals = sorted_individuals[:int(len(individuals) * best_n)]
         # get worst n individuals from the back
         worst_individuals = sorted_individuals[
-                            len(individuals) - int(len(individuals) * worst_n):]
+            len(individuals) - int(len(individuals) * worst_n):]
         for wi in range(len(worst_individuals)):
             if pick_method == 'random':
                 # pick a random number for the best individuals add noise
@@ -381,7 +395,8 @@ class EnsembleKalmanFilter(Optimizer):
                 sampled = self._sample(best_individuals, pick_method)
                 worst_individuals = sampled
                 break
-        sorted_individuals[len(sorted_individuals) - len(worst_individuals):] = worst_individuals
+        sorted_individuals[len(sorted_individuals) -
+                           len(worst_individuals):] = worst_individuals
         return sorted_individuals
 
     def _sample(self, individuals, method='gaussian'):
@@ -445,7 +460,7 @@ class EnsembleKalmanFilter(Optimizer):
             plt.hist(weights.mean(0))
         else:
             plt.hist(weights)
-        plt.savefig('weight_distributions_gen{}.eps'.format(gen), format='eps')
+        plt.savefig('weight_distributions_gen{}.pdf'.format(gen), format='pdf')
         plt.close()
 
     @staticmethod
@@ -455,11 +470,13 @@ class EnsembleKalmanFilter(Optimizer):
         lower_bound = mu - std
         upper_bound = mu + std
         plt.plot(mu, 'o-')
-        plt.fill_between(range(len(mu)), lower_bound, upper_bound, alpha=0.3)
+        plt.fill_between(range(len(mu)), lower_bound,
+                         upper_bound, alpha=0.5, color='green')
         # plt.plot(np.ones_like(f_) * i, np.ravel(f), '.')
         plt.xlabel('Generations')
         plt.ylabel('Fitness')
-        plt.savefig('fitnesses.eps', format='eps')
+        plt.savefig('fitnesses.pdf', format='pdf')
+        plt.savefig('fitnesses.svg', format='svg')
         plt.close()
 
     @staticmethod
