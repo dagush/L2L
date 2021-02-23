@@ -221,6 +221,8 @@ class EnsembleKalmanFilter(Optimizer):
         self.current_fitness = np.max(fitness)
 
         ens = np.array(weights)
+        model_outs = np.array([traj.current_results[i][1]['model_out'] for i in
+                               range(ensemble_size)])
         if traj.scale_weights:
             # (ens - ens.min()) / (ens.max() - ens.min())
             ens = ens / np.abs(ens).max()
@@ -229,6 +231,7 @@ class EnsembleKalmanFilter(Optimizer):
         # sampling step
         if traj.sample:
             ens = self.sample_from_individuals(individuals=ens,
+                                               model_output=model_outs,
                                                fitness=fitness,
                                                sampling_method=traj.sampling_method,
                                                pick_method=traj.pick_method,
@@ -238,11 +241,6 @@ class EnsembleKalmanFilter(Optimizer):
                                                       traj.n_repeat_batch),
                                                **traj.kwargs
                                                )
-        model_outs = np.array([traj.current_results[i][1]['model_out'] for i in
-                               range(ensemble_size)])
-        model_outs = model_outs.reshape((ensemble_size,
-                                         len(self.target_label),
-                                         traj.n_batches))
         best_indviduals = np.argsort(fitness)[::-1]
         current_res = np.sort(fitness)[::-1]
         logger.info('Sorted Fitness {}'.format(current_res))
@@ -254,6 +252,9 @@ class EnsembleKalmanFilter(Optimizer):
         logger.info('Mean of individuals {}'.format(np.mean(current_res)))
         self.best_individual.append((best_indviduals[0], current_res[0]))
 
+        model_outs = model_outs.reshape((ensemble_size,
+                                         len(self.target_label),
+                                         traj.n_batches))
         enkf = EnKF(maxit=traj.maxit,
                     online=traj.online,
                     n_batches=traj.n_batches)
@@ -324,7 +325,7 @@ class EnsembleKalmanFilter(Optimizer):
             weights = scaler.fit_transform(weights)
         return weights, scaler
 
-    def sample_from_individuals(self, individuals, fitness,
+    def sample_from_individuals(self, individuals, fitness, model_output,
                                 best_n=0.25, worst_n=0.25,
                                 pick_method='random',
                                 **kwargs):
@@ -337,6 +338,9 @@ class EnsembleKalmanFilter(Optimizer):
             Fitness array
         :param best_n: float
             Percentage of best individuals to sample from
+        :param model_output, array like, model outputs of the best indiviudals 
+            will be used to replace the model outputs of the worst individuals 
+            in the same manner as the sampling
         :param worst_n:
             Percentage of worst individuals to replaced by sampled individuals
         :param pick_method: str
@@ -371,6 +375,8 @@ class EnsembleKalmanFilter(Optimizer):
         # get worst n individuals from the back
         worst_individuals = sorted_individuals[
             len(individuals) - int(len(individuals) * worst_n):]
+        # sort model outputs
+        sorted_model_output = model_output[indices]
         for wi in range(len(worst_individuals)):
             if pick_method == 'random':
                 # pick a random number for the best individuals add noise
@@ -381,8 +387,9 @@ class EnsembleKalmanFilter(Optimizer):
                                          scale=kwargs['scale'],
                                          size=len(ind))
                 worst_individuals[wi] = ind + noise
+                model_output[wi] = sorted_model_output[rnd_indx]
             elif pick_method == 'best_first':
-                for bi in best_individuals:
+                for bidx, bi in enumerate(best_individuals):
                     pp = kwargs['pick_probability']
                     rnd_pp = np.random.rand()
                     if pp >= rnd_pp:
@@ -391,9 +398,15 @@ class EnsembleKalmanFilter(Optimizer):
                                                  scale=kwargs['scale'],
                                                  size=len(bi))
                         worst_individuals[wi] = bi + noise
+                        model_output[wi] = sorted_model_output[bidx]
+                        break
             else:
                 sampled = self._sample(best_individuals, pick_method)
                 worst_individuals = sampled
+                rnd_int = np.random.randint(
+                    0, len(best_individuals), size=len(best_individuals))
+                model_output[len(sorted_individuals) -
+                             len(worst_individuals):] = sorted_model_output[rnd_int]
                 break
         sorted_individuals[len(sorted_individuals) -
                            len(worst_individuals):] = worst_individuals
