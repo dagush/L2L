@@ -246,7 +246,7 @@ class AdaptiveOptimizee(Optimizee):
             n_img = self.n_input_neurons
             rates, starts, ends = spike_generator.greyvalue_sequential(
                 self.target_px[n_img], start_time=0, end_time=783, min_rate=0,
-                max_rate=200) #10
+                max_rate=200)  # 10
             self.rates = rates
             self.pixel_rate_generators = nest.Create(
                 "poisson_generator", len(rates))
@@ -292,16 +292,16 @@ class AdaptiveOptimizee(Optimizee):
                                  "mu": self.psc_i,
                                  "sigma": 100.}}
         syn_dict_input = {"model": "random_synapse",
-                      'weight': {"distribution": "normal",
-                                 "mu": self.psc_e*15,
-                                 "sigma": 100.}}
+                          'weight': {"distribution": "normal",
+                                     "mu": self.psc_e,
+                                     "sigma": 100.}}
         nest.Connect(self.pixel_rate_generators, self.nodes_in, "one_to_one",
                      syn_spec=syn_dict_input)
         # connect input to bulk
         conn_dict = {'rule': 'fixed_indegree', 'indegree': self.n_bulk_ex_neurons}
-        nest.Connect(self.nodes_in, self.nodes_e, conn_spec=conn_dict, #all_to_all
+        nest.Connect(self.nodes_in, self.nodes_e, conn_spec=conn_dict,  # all_to_all
                      syn_spec=syn_dict_e)
-        nest.Connect(self.nodes_in, self.nodes_i, conn_spec=conn_dict, #all_to_all
+        nest.Connect(self.nodes_in, self.nodes_i, conn_spec=conn_dict,  # all_to_all
                      syn_spec=syn_dict_i)
 
     def connect_bellec_input(self):
@@ -647,8 +647,9 @@ class AdaptiveOptimizee(Optimizee):
         # weights = conns['weight'].values
         print('now replacing connection weights')
         for (s, t, w) in zip(sources, targets, weights):
-            syn_spec = {'weight': float(int(w)),
-                        'model': 'static_synapse'}
+            syn_spec = {'weight': float(w),
+                        'model': 'static_synapse',
+                        'delay': 1.0}
             nest.Connect(pre=tuple([s]), post=tuple([t]),
                          syn_spec=syn_spec,
                          conn_spec='one_to_one')
