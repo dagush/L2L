@@ -230,17 +230,16 @@ class EnsembleKalmanFilter(Optimizer):
             #                                   method=pp.MinMaxScaler)
         # sampling step
         if traj.sample:
-            ens = self.sample_from_individuals(individuals=ens,
-                                               model_output=model_outs,
-                                               fitness=fitness,
-                                               sampling_method=traj.sampling_method,
-                                               pick_method=traj.pick_method,
-                                               best_n=traj.best_n,
-                                               worst_n=traj.worst_n /
-                                               np.exp(self.g %
-                                                      traj.n_repeat_batch),
-                                               **traj.kwargs
-                                               )
+            ens, model_outs = self.sample_from_individuals(individuals=ens,
+                                                           model_output=model_outs,
+                                                           fitness=fitness,
+                                                           sampling_method=traj.sampling_method,
+                                                           pick_method=traj.pick_method,
+                                                           best_n=traj.best_n,
+                                                           worst_n=traj.worst_n / np.exp(
+                                                               self.g % traj.n_repeat_batch),
+                                                           **traj.kwargs
+                                                           )
         best_indviduals = np.argsort(fitness)[::-1]
         current_res = np.sort(fitness)[::-1]
         logger.info('Sorted Fitness {}'.format(current_res))
@@ -410,7 +409,7 @@ class EnsembleKalmanFilter(Optimizer):
                 break
         sorted_individuals[len(sorted_individuals) -
                            len(worst_individuals):] = worst_individuals
-        return sorted_individuals
+        return sorted_individuals, model_output
 
     def _sample(self, individuals, method='gaussian'):
         if method == 'gaussian':
