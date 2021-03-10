@@ -24,53 +24,80 @@ import neuroml.utils as utils
 from neuroml.nml.nml import parse as nmlparse
 logger = logging.getLogger("ltl-neuron")
 
+import scipy.fftpack
+from scipy.signal import find_peaks
+from scipy import integrate
+
 
 class SingleNeuronFit:
-    def __init__(self, neuron_name, v1, v2, path=""):
+    def __init__(self, neuron_name, task="1a", simulator="Eden", linear_measure=False, v1, v2, path=""):
         random.seed(12345)
-
-
-        # import eden_tools
+        
+        # inputs
         self.neuron_name = neuron_name
         self.path = path
-        self.long_pulse_blockIds = []
+        self.task = task
+        self.simulator = simulator
+        
+        if self.task == "2":
+            self.long_pulse_blockIds = []
+            os.chdir(self.path)
+            rawdata_path = os.path.realpath("../dataNora")
+            self.experimental_data = SingleNeuron(self.neuron_name, path = rawdata_path)
         os.chdir(self.path)
-
-        rawdata_path = os.path.realpath("../dataNora")
-        self.experimental_data = SingleNeuron(self.neuron_name, path=rawdata_path)
-        os.chdir(self.path)
-
-        # experimental part
+        
+        #parameters and variables experimental part
         self.experimental_temp = 26
-        self.experimental_current_signals = []
-        self.experimental_voltage_signals = {}
-        self.experimental_time_axis = []
+        if self.task == "2":
+            self.experimental_current_signals = []
+            self.experimental_voltage_signals = {}
+            self.experimental_time_axis = []
+        
+            #pulse characteristics
+            self.t_pulse_start = 0
+            self.t_end = 0
+            self.pulse_duration = 0
+            self.pulse_heights = []
 
-        # pulse characteristics
-        self.t_pulse_start = 0
-        self.t_end = 0
-        self.pulse_duration = 0
-        self.pulse_heights = []
-
-        # model part
+        #parameters and variables model part
         self.dt = 0.05
+        self.model_init_time = 5000 #ms
+        if self.task[0] == "1":
+            self.run_time = 5000 #ms
+        self.ind_break = int(self.model_init_time/self.dt)+1
         self.LEMS_filename = " "
         self.results_Eden = {}
         self.results_Neuron = {}
+        self.results = {}
         self.model_current_signals = []
         self.model_voltage_signals = {}
         self.model_time_axis = []
-
-        self.get_long_pulse_blockIds()
-        self.get_experimental_current_signals()
-        self.get_experimental_voltage_signals()
-        self.get_pulse_characteristics()
-
-        # self.get_experimental_temp()
+        
+        #parameters and variables optimizer part
+        self.fitness = -1000
+        
+        #functions experimental part
+        if self.task == "2":
+            self.get_long_pulse_blockIds()
+            self.get_experimental_current_signals()
+            self.get_experimental_voltage_signals()
+            self.get_pulse_characteristics()
+            
+        #functions model part
         self.create_NML_network()
-        # self.run_network_with_Eden()
-        self.run_network_with_Neuron()
-        self.split_model_data_in_blocks()
+        
+        if self.simulator == "Eden":
+            self.run_network_with_Eden()
+            self.results = self.results_Eden.copy()
+        elif self.simulator == "Neuron":
+            self.run_network_with_Neuron()
+            self.results = self.results_Neuron.copy()
+
+        if self.task == "2":
+            self.split_model_data_in_blocks()
+            
+        #functions optimizee part
+        self.compute_fitness(linear_measure)
 
     def get_long_pulse_blockIds(self):
         blocks_IV = []
@@ -124,11 +151,6 @@ class SingleNeuronFit:
             pulse_heights.append(av_height)
         self.pulse_heights = pulse_heights
 
-    def get_experimental_temp(self):
-        temp_min = self.experimental_data.recording_metadata.bath_temp_min.iloc[0]
-        temp_max = self.experimental_data.recording_metadata.bath_temp_max.iloc[0]
-        self.experimental_temp = (temp_min + temp_max) / 2
-
     def create_NML_network(self):
         os.chdir(os.path.realpath('../NMLfiles'))
 
@@ -154,18 +176,19 @@ class SingleNeuronFit:
         pop.instances.append(inst)
 
         # Create pulse generator
-        for pulse_nr in range(len(self.pulse_heights)):
-            p_delay = self.t_pulse_start + pulse_nr * self.t_end
-            pg = nml.PulseGenerator(id="iclamp" + str(pulse_nr), delay=str(p_delay) + "ms",
-                                    duration=str(self.pulse_duration) + "ms",
-                                    amplitude=str(self.pulse_heights[pulse_nr]) + "pA")
-            nml_doc.pulse_generators.append(pg)
+        if self.task == "2":
+            for pulse_nr in range(len(self.pulse_heights)):
+                p_delay = self.t_pulse_start + pulse_nr * self.t_end
+                pg = nml.PulseGenerator(id="iclamp" + str(pulse_nr), delay=str(p_delay) + "ms",
+                                        duration=str(self.pulse_duration) + "ms",
+                                        amplitude=str(self.pulse_heights[pulse_nr]) + "pA")
+                nml_doc.pulse_generators.append(pg)
 
-            # Add pg to cell
-            il = nml.InputList(id="clamps" + str(pulse_nr), component=pg.id, populations="pop")
-            ip = nml.Input(id="0", target="../pop/0/" + comp_id, segmentId="0", destination="synapses")
-            il.input.append(ip)
-            net.input_lists.append(il)
+                # Add pg to cell
+                il = nml.InputList(id="clamps" + str(pulse_nr), component=pg.id, populations="pop")
+                ip = nml.Input(id="0", target="../pop/0/" + comp_id, segmentId="0", destination="synapses")
+                il.input.append(ip)
+                net.input_lists.append(il)
 
         nml_file = self.neuron_name[2:] + ".net.nml"
         writers.NeuroMLWriter.write(nml_doc, nml_file)
@@ -175,8 +198,11 @@ class SingleNeuronFit:
         # print("Written network file to: "+nml_file_dir+"/"+nml_file)
 
         sim_id = self.neuron_name[2:]
-        sim_dur_ms = len(self.pulse_heights) * self.t_end
-        quantity = "pop/0/" + comp_id + "/0/v"
+        if self.task[0] == "1":
+            sim_dur_ms = self.model_init_time + self.run_time
+        elif self.task == "2":
+            sim_dur_ms = len(self.pulse_heights) * self.t_end
+        quantity = "pop/0/"+comp_id+"/0/v"
         target = 'net'
 
         ls = LEMSSimulation(sim_id, sim_dur_ms, self.dt, target=target)
@@ -317,8 +343,83 @@ class SingleNeuronFit:
 
     def rerun_model(self):
         self.create_NML_network()
-        self.run_network_with_Eden()
+        if self.simulator == "Eden":
+            self.run_network_with_Eden()
+            self.results = self.results_Eden.copy()
+        elif self.simulator == "Neuron":
+            self.run_network_with_Neuron()
+            self.results = self.results_Neuron.copy()
         self.split_model_data_in_blocks()
+       
+    def compute_fitness(self, linear_measure):
+        if self.task[0] == "1":
+            #STO amplitude
+            data_full = self.results['pop/0/C'+self.neuron_name[2:]+'/0/v']
+            time_full = self.results['t']
+            data_inV = data_full[self.ind_break:]
+            data = [data_inV[i] * 1000 for i in range(len(data_inV))]
+            time = time_full[self.ind_break:]
+            
+            top_peaks, _ = find_peaks(data, prominence = 8)
+            bottom_peaks, _ = find_peaks([-data[i] for i in range(len(data))])
+            
+            max_val = np.mean([data[i] for i in top_peaks])
+            min_val = np.mean([data[i] for i in bottom_peaks])
+            mean_val = (max_val + min_val)/2
+            ampl = max_val - min_val
+            
+            #check if everything went right
+            plt.figure()
+            plt.plot(time, data)
+            plt.plot([self.model_init_time*0.001, (self.model_init_time+self.run_time)*0.001], [max_val, max_val], 'r', label = 'maximum')
+            plt.plot([self.model_init_time*0.001, (self.model_init_time+self.run_time)*0.001], [min_val, min_val], 'm', label = 'minimum')
+            for i in top_peaks:
+                plt.plot(time[i], data[i], 'xr')
+            for i in bottom_peaks:
+                plt.plot(time[i], data[i], 'xr')
+            plt.xlabel("time (s)")
+            plt.ylabel("membrane potential (mV)")
+            plt.title('C'+self.neuron_name[2:]+", verify that peaks, the minimum and the maximum were determined correctly", fontsize=16)
+            plt.legend(loc='center right')
+            plt.savefig('peak_detection.png')            
+                         
+            #STO frequency
+            if len(top_peaks) > 2:
+                freq = (len(top_peaks) - 1)/(time[top_peaks[-1]] - time[top_peaks[0]])
+            else:
+                freq = 0
+            
+            #STO symmetry
+            data_centered = data - mean_val
+            data_int = integrate.cumtrapz(data_centered[top_peaks[0]:bottom_peaks[-1]], time[top_peaks[0]:bottom_peaks[-1]], initial=0)
+            symm = data_int[-1] / (self.run_time*0.001)
+            
+            #Compute finess
+            if self.task == "1a":
+                if linear_measure:
+                    fitness_ampl = - abs(20 - ampl)
+                    fitness_freq = - abs(8 - freq)
+                    fitness_symm = - abs(0 - symm)
+                    fitness_mean = - abs(-55 - mean_val)
+                else:
+                    fitness_ampl = - (20 - ampl)**2
+                    fitness_freq = - (8 - ampl)**2
+                    fitness_symm = - (0 - symm)**2
+                    fitness_mean = - (-55 - mean_val)**2
+            
+            elif self.task == "1b":
+                if linear_measure:
+                    fitness_ampl = - abs(2 - ampl)
+                    fitness_freq = - abs(4 - freq)
+                    fitness_symm = - abs(0 - symm)
+                    fitness_mean = - abs(-55 - mean_val)
+                else:
+                    fitness_ampl = - (2 - ampl)**2
+                    fitness_freq = - (4 - ampl)**2
+                    fitness_symm = - (0 - symm)**2
+                    fitness_mean = - (-55 - mean_val)**2
+                    
+            self.fitness = fitness_ampl + fitness_freq + fitness_symm + fitness_mean
 
 
 class NeuronOptimizee(Optimizee):
@@ -343,8 +444,9 @@ class NeuronOptimizee(Optimizee):
         return self.get_fitness()
 
     def get_fitness(self):
-        return np.random.randint(5, size=1)
-
+        #return np.random.randint(5, size=1)
+        return self.cellData[neuron_name].fitness
+    
     def simulate(self, trajectory):
 
         self.id = trajectory.individual.ind_idx
