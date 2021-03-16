@@ -30,7 +30,7 @@ from scipy import integrate
 
 
 class SingleNeuronFit:
-    def __init__(self, neuron_name, task="1a", simulator="Eden", linear_measure=False, v1, v2, path=""):
+    def __init__(self, neuron_name, task=1, simulator="Eden", v1, v2, path="", targets = [20, 80, 0, -55]):
         random.seed(12345)
         
         # inputs
@@ -38,8 +38,9 @@ class SingleNeuronFit:
         self.path = path
         self.task = task
         self.simulator = simulator
+        self.targets = targets
         
-        if self.task == "2":
+        if self.task == 2:
             self.long_pulse_blockIds = []
             os.chdir(self.path)
             rawdata_path = os.path.realpath("../dataNora")
@@ -48,7 +49,7 @@ class SingleNeuronFit:
         
         #parameters and variables experimental part
         self.experimental_temp = 26
-        if self.task == "2":
+        if self.task == 2:
             self.experimental_current_signals = []
             self.experimental_voltage_signals = {}
             self.experimental_time_axis = []
@@ -62,7 +63,7 @@ class SingleNeuronFit:
         #parameters and variables model part
         self.dt = 0.05
         self.model_init_time = 5000 #ms
-        if self.task[0] == "1":
+        if self.task == 1:
             self.run_time = 5000 #ms
         self.ind_break = int(self.model_init_time/self.dt)+1
         self.LEMS_filename = " "
@@ -77,7 +78,7 @@ class SingleNeuronFit:
         self.fitness = -1000
         
         #functions experimental part
-        if self.task == "2":
+        if self.task == 2:
             self.get_long_pulse_blockIds()
             self.get_experimental_current_signals()
             self.get_experimental_voltage_signals()
@@ -93,11 +94,11 @@ class SingleNeuronFit:
             self.run_network_with_Neuron()
             self.results = self.results_Neuron.copy()
 
-        if self.task == "2":
+        if self.task == 2:
             self.split_model_data_in_blocks()
             
         #functions optimizee part
-        self.compute_fitness(linear_measure)
+        self.compute_fitness()
 
     def get_long_pulse_blockIds(self):
         blocks_IV = []
@@ -176,7 +177,7 @@ class SingleNeuronFit:
         pop.instances.append(inst)
 
         # Create pulse generator
-        if self.task == "2":
+        if self.task == 2:
             for pulse_nr in range(len(self.pulse_heights)):
                 p_delay = self.t_pulse_start + pulse_nr * self.t_end
                 pg = nml.PulseGenerator(id="iclamp" + str(pulse_nr), delay=str(p_delay) + "ms",
@@ -198,9 +199,9 @@ class SingleNeuronFit:
         # print("Written network file to: "+nml_file_dir+"/"+nml_file)
 
         sim_id = self.neuron_name[2:]
-        if self.task[0] == "1":
+        if self.task == 1:
             sim_dur_ms = self.model_init_time + self.run_time
-        elif self.task == "2":
+        elif self.task == 2:
             sim_dur_ms = len(self.pulse_heights) * self.t_end
         quantity = "pop/0/"+comp_id+"/0/v"
         target = 'net'
@@ -326,8 +327,14 @@ class SingleNeuronFit:
         plt.show()
 
     def change_condDensity(self, value, channel):
-        os.chdir(os.path.realpath('../NMLfiles'))
-        # na_s_soma, kdr_soma, k_soma, cal_soma, cah_dend, kca_dend, h_dend, leak_all
+        os.chdir(os.path.realpath('../NMLfiles')
+        # na_s_soma, kdr_soma, k_soma, cal_soma, cah_dend, kca_dend, h_dend, na_axon, k_axon, leak
+        leak_channels = ["leak_soma", "leak_axon", "leak_dend_prox", "leak_dend_dist"]
+        if channel == "leak":
+            for i in range(len(leak_channels)):
+                 change_condDensity(self, value, leak_channels[i])
+            return
+                 
         doc = nmlparse("C" + self.neuron_name[2:] + "_scaled_resample_5.cell.nml")
         channel_densities = doc.cells[0].biophysical_properties.membrane_properties.channel_densities
         nr_of_channels = len(channel_densities)
@@ -351,8 +358,8 @@ class SingleNeuronFit:
             self.results = self.results_Neuron.copy()
         self.split_model_data_in_blocks()
        
-    def compute_fitness(self, linear_measure):
-        if self.task[0] == "1":
+    def compute_fitness(self):
+        if self.task == 1:
             #STO amplitude
             data_full = self.results['pop/0/C'+self.neuron_name[2:]+'/0/v']
             time_full = self.results['t']
@@ -391,33 +398,16 @@ class SingleNeuronFit:
             
             #STO symmetry
             data_centered = data - mean_val
-            data_int = integrate.cumtrapz(data_centered[top_peaks[0]:bottom_peaks[-1]], time[top_peaks[0]:bottom_peaks[-1]], initial=0)
-            symm = data_int[-1] / (self.run_time*0.001)
+            data_abs = abs(data_centered)
+            data_int = integrate.cumtrapz(data_centered[top_peaks[0]:top_peaks[-1]], time[top_peaks[0]:top_peaks[-1]], initial=0)
+            surface = integrate.cumtrapz(data_abs[top_peaks[0]:top_peaks[-1]], time[top_peaks[0]:top_peaks[-1]], initial=0)
+            symm = data_int[-1]/surface[-1]
             
             #Compute finess
-            if self.task == "1a":
-                if linear_measure:
-                    fitness_ampl = - abs(20 - ampl)
-                    fitness_freq = - abs(8 - freq)
-                    fitness_symm = - abs(0 - symm)
-                    fitness_mean = - abs(-55 - mean_val)
-                else:
-                    fitness_ampl = - (20 - ampl)**2
-                    fitness_freq = - (8 - ampl)**2
-                    fitness_symm = - (0 - symm)**2
-                    fitness_mean = - (-55 - mean_val)**2
-            
-            elif self.task == "1b":
-                if linear_measure:
-                    fitness_ampl = - abs(2 - ampl)
-                    fitness_freq = - abs(4 - freq)
-                    fitness_symm = - abs(0 - symm)
-                    fitness_mean = - abs(-55 - mean_val)
-                else:
-                    fitness_ampl = - (2 - ampl)**2
-                    fitness_freq = - (4 - ampl)**2
-                    fitness_symm = - (0 - symm)**2
-                    fitness_mean = - (-55 - mean_val)**2
+            fitness_ampl = - ((self.targets[0] - ampl) / self.targets[0])**2
+            fitness_freq = - ((self.targets[1] - freq) / self.targets[1])**2
+            fitness_symm = - (self.targets[2] - symm)**2
+            fitness_mean = - ((self.targets[3] - mean_val) / self.targets[3])**2
                     
             self.fitness = fitness_ampl + fitness_freq + fitness_symm + fitness_mean
 
@@ -474,17 +464,29 @@ class NeuronOptimizee(Optimizee):
         """
         # Define the first solution candidate randomly
         # na_s_soma, kdr_soma, k_soma, cal_soma, cah_dend, kca_dend, h_dend, leak_all
-        self.bound_gr = [1,2]
-        self.na_s_soma = [0, 0]
-        self.kdr_soma = [0, 0]
-        self.k_soma = [0, 0]
-        self.cal_soma = [0, 0]
-        self.cah_dend = [0, 0]
-        self.kca_dend = [0, 0]
-        self.h_dend = [0, 0]
-        self.leak_all = [0, 0]
+        self.bound_gr = [1, 2]
+        self.na_s_soma = [15, 60]
+        self.kdr_soma = [15, 60]
+        self.k_soma = [7.5, 30]
+        self.cal_soma = [10, 40]
+        self.cah_dend = [5, 20]
+        self.kca_dend = [17.5, 70]
+        self.h_dend = [12.5, 50]
+        self.na_axon = [100, 400]
+        self.k_axon = [100, 400]
+        self.leak = [0.65e-2, 2.6e-2]
         return {'v1': self.random_state.rand() * (self.bound_gr[1] - self.bound_gr[0]) + self.bound_gr[0],
-                'v2': self.random_state.rand() * (self.bound_gr[1] - self.bound_gr[0]) + self.bound_gr[0]}
+                'v2': self.random_state.rand() * (self.bound_gr[1] - self.bound_gr[0]) + self.bound_gr[0],
+                'na_s_soma': self.random_state.rand() * (self.na_s_soma[1] - self.na_s_soma[0]) + self.na_s_soma[0],
+                'kdr_soma': self.random_state.rand() * (self.kdr_soma[1] - self.kdr_soma[0]) + self.kdr_soma[0], 
+                'k_soma': self.random_state.rand() * (self.k_soma[1] - self.k_soma[0]) + self.k_soma[0],
+                'cal_soma': self.random_state.rand() * (self.cal_soma[1] - self.cal_soma[0]) + self.cal_soma[0], 
+                'cah_dend': self.random_state.rand() * (self.cah_dend[1] - self.cah_dend[0]) + self.cah_dend[0],
+                'kca_dend': self.random_state.rand() * (self.kca_dend[1] - self.kca_dend[0]) + self.kca_dend[0],
+                'h_dend': self.random_state.rand() * (self.h_dend[1] - self.h_dend[0]) + self.h_dend[0],
+                'na_axon': self.random_state.rand() * (self.na_axon[1] - self.na_axon[0]) + self.na_axon[0],
+                'k_axon': self.random_state.rand() * (self.k_axon[1] - self.k_axon[0]) + self.k_axon[0],
+                'leak': self.random_state.rand() * (self.leak[1] - self.leak[0]) + self.leak[0]}
 
     def bounding_func(self, individual):
         return individual
