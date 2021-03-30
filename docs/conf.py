@@ -158,7 +158,7 @@ html_theme = 'basicstrap'
 #
 # html_short_title = None
 
-html_baseurl = "https://igitugraz.github.io/L2L/"
+html_baseurl = "https://meta-optimization.github.io/L2L/"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
