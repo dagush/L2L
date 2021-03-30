@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+
+
+
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    
+    <title>Overview &mdash; L2L 1.0.0-beta documentation</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    
+
+<link rel="stylesheet" href="_static/css/basicstrap-base.css" type="text/css" />
+<link rel="stylesheet" id="current-theme" href="_static/css/bootstrap3/bootstrap.min.css" type="text/css" />
+<link rel="stylesheet" id="current-adjust-theme" type="text/css" />
+
+<link rel="stylesheet" href="_static/css/font-awesome.min.css">
+
+<style type="text/css">
+  body {
+    padding-top: 60px;
+    padding-bottom: 40px;
+  }
+</style>
+
+<link rel="stylesheet" href="_static/css/basicstrap.css" type="text/css" />
+<link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+<script type="text/javascript">
+  var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:    './',
+            VERSION:     '1.0.0-beta',
+            COLLAPSE_INDEX: false,
+            FILE_SUFFIX: '.html',
+            HAS_SOURCE:  true
+  };
+</script>
+    <script type="text/javascript" src="_static/js/jquery.min.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <script type="text/javascript" src="_static/js/bootstrap3.min.js"></script>
+<script type="text/javascript" src="_static/js/jquery.cookie.min.js"></script>
+<script type="text/javascript" src="_static/js/basicstrap.js"></script>
+<script type="text/javascript">
+</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="top" title="L2L 1.0.0-beta documentation" href="index.html" />
+    <link rel="next" title="API Reference" href="l2l.html" />
+    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
+  </head>
+  <body role="document">
+    <div id="navbar-top" class="navbar navbar-fixed-top navbar-default" role="navigation" aria-label="top navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="index.html">L2L 1.0.0-beta documentation</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+              <li class="dropdown visible-xs">
+                <a role="button" id="localToc" data-toggle="dropdown" data-target="#" href="#">Table Of Contents <b class="caret"></b></a>
+                <ul class="dropdown-menu localtoc sp-localtoc" role="menu" aria-labelledby="localToc">
+                <ul>
+<li><a class="reference internal" href="#">Overview</a><ul>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#the-interface">The Interface</a><ul>
+<li><a class="reference internal" href="#terminology">Terminology</a></li>
+<li><a class="reference internal" href="#iteration-loop">Iteration loop</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#writing-new-algorithms">Writing new algorithms</a><ul>
+<li><a class="reference internal" href="#important-data-structures">Important Data Structures</a><ul>
+<li><a class="reference internal" href="#trajectory">Trajectory</a></li>
+<li><a class="reference internal" href="#individual-dicts">Individual-Dict</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#optimizee">Optimizee</a><ul>
+<li><a class="reference internal" href="#constructor-of-optimizee">Constructor of Optimizee</a></li>
+<li><a class="reference internal" href="#the-create-individual-function">The <code class="xref py py-meth docutils literal notranslate"><span class="pre">create_individual()</span></code> function:</a></li>
+<li><a class="reference internal" href="#the-simulate-function">The <code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code> function:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#optimizer">Optimizer</a><ul>
+<li><a class="reference internal" href="#constructor-of-optimizer">Constructor of Optimizer</a></li>
+<li><a class="reference internal" href="#the-post-process-function">The <code class="xref py py-meth docutils literal notranslate"><span class="pre">post_process()</span></code> function:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#running-an-l2l-simulation">Running an L2L simulation</a></li>
+<li><a class="reference internal" href="#execution-setup">Execution setup</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#data-postprocessing">Data postprocessing</a></li>
+<li><a class="reference internal" href="#parallelization">Parallelization</a></li>
+<li><a class="reference internal" href="#logging">Logging</a></li>
+<li><a class="reference internal" href="#additional-utilities-and-protocols">Additional Utilities and Protocols</a><ul>
+<li><a class="reference internal" href="#dict-to-list-to-dict-conversion">dict-to-list-to-dict Conversion</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+                </ul>
+              </li>
+
+            
+              <li><a href="quickstart.html" title="Quickstart" accesskey="P">previous </a></li>
+              <li><a href="l2l.html" title="API Reference" accesskey="N">next </a></li>
+              <li><a href="py-modindex.html" title="Python Module Index" >modules </a></li>
+              <li><a href="genindex.html" title="General Index" accesskey="I">index </a></li>
+            
+            <li class="visible-xs"><a href="_sources/intro.rst.txt" rel="nofollow">Show Source</a></li>
+
+            <li class="visible-xs">
+                <form class="search form-search form-inline navbar-form navbar-right sp-searchbox" action="search.html" method="get">
+                  <div class="input-append input-group">
+                    <input type="text" class="search-query form-control" name="q" placeholder="Search...">
+                    <span class="input-group-btn">
+                    <input type="submit" class="btn" value="Go" />
+                    </span>
+                  </div>
+                  <input type="hidden" name="check_keywords" value="yes" />
+                  <input type="hidden" name="area" value="default" />
+                </form>
+            </li>
+
+            
+
+          </ul>
+
+        </div>
+      </div>
+    </div>
+    
+
+    <!-- container -->
+    <div class="container-fluid">
+
+      <!-- row -->
+      <div class="row">
+         
+<div class="col-md-3 hidden-xs" id="sidebar-wrapper">
+  <div class="sidebar hidden-xs" role="navigation" aria-label="main navigation">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-interface">The Interface</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#terminology">Terminology</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iteration-loop">Iteration loop</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#writing-new-algorithms">Writing new algorithms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#important-data-structures">Important Data Structures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#trajectory">Trajectory</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#individual-dicts">Individual-Dict</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#optimizee">Optimizee</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#constructor-of-optimizee">Constructor of Optimizee</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-create-individual-function">The <code class="xref py py-meth docutils literal notranslate"><span class="pre">create_individual()</span></code> function:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-simulate-function">The <code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code> function:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#optimizer">Optimizer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#constructor-of-optimizer">Constructor of Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-post-process-function">The <code class="xref py py-meth docutils literal notranslate"><span class="pre">post_process()</span></code> function:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#running-an-l2l-simulation">Running an L2L simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#execution-setup">Execution setup</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-postprocessing">Data postprocessing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parallelization">Parallelization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logging">Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#additional-utilities-and-protocols">Additional Utilities and Protocols</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dict-to-list-to-dict-conversion">dict-to-list-to-dict Conversion</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="l2l.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="l2l-bin.html">L2L Experiments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices and tables</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="quickstart.html"
+                        title="previous chapter">Quickstart</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="l2l.html"
+                        title="next chapter">API Reference</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/intro.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" role="search">
+  <h3>Quick search</h3>
+  <form class="search form-inline" action="search.html" method="get">
+      <div class="input-append input-group">
+        <input type="text" class="search-query form-control" name="q" placeholder="Search...">
+        <span class="input-group-btn">
+        <input type="submit" class="btn" value="Go" />
+        </span>
+      </div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+  </div>
+</div> 
+        
+
+        <div class="col-md-9" id="content-wrapper">
+          <div class="document" role="main">
+            <div class="documentwrapper">
+              <div class="bodywrapper">
+                <div class="body">
+                  
+  <div class="section" id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>This is the Learning to Learn gradient-free optimization framework for experimenting with many different algorithms. The
+basic idea behind “Learning to Learn” is to have an “outer loop” optimizer optimizing the parameters of an “inner loop”
+optimizee. This particular framework is written for the case where the cycle goes as follows:</p>
+<ol class="arabic simple">
+<li><p>The outer-loop optimizer generates an instance of a set of parameters and provides it to the inner-loop optimizee</p></li>
+<li><p>The inner-loop optimizee evaluates how well this set of parameters performs and returns a “fitness” vector for each
+parameter in the set of parameters</p></li>
+<li><p>The outer-loop optimizer generates a new set of parameters using the fitness vector it got back from the inner-loop
+optimizee</p></li>
+</ol>
+<p>On the whole, what this means is that the outer-loop Optimizer works only with parameters and fitness values and doesn’t
+have access to the actual underlying model of the optimizee. And the only thing the optimizee does is to evaluate the
+fitness of the given parameter. This fitness can be anything – the reward achieved in a domain, the mean squared error
+on a dataset etc.</p>
+</div>
+<div class="section" id="the-interface">
+<h2>The Interface<a class="headerlink" href="#the-interface" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="terminology">
+<h3>Terminology<a class="headerlink" href="#terminology" title="Permalink to this headline">¶</a></h3>
+<span id="individual"></span><dl class="simple" id="individuals">
+<dt><em>Individual</em>:</dt><dd><p>An Individual refers to an instance of hyper-parameters used in the  <cite>Optimizee</cite>. This means that the <cite>Optimizer</cite>
+tests multiple individuals of an optimizee to perform an optimization. This terminology is borrowed from evolutionary
+algorithms. It is equivalent to the hyper-parameters of the <cite>Optimizee</cite>.</p>
+</dd>
+</dl>
+<dl class="simple" id="generation">
+<dt><em>Generation</em>:</dt><dd><p>This term, again borrowed from evolutionary algorithms, refers to a single iteration of the outer-loop. Refer to
+the Top-Level iteration Description in the introduction to see exactly what is done each generation</p>
+</dd>
+</dl>
+<dl class="simple" id="population">
+<dt><em>Population</em>:</dt><dd><p>Used to denote a set of <a class="reference internal" href="#individuals">individuals</a> that are evaluated in the same <a class="reference internal" href="#generation">generation</a>.</p>
+</dd>
+</dl>
+<p>Other terms such as Trajectory, individual-dict, are defined as they are introduced below.</p>
+</div>
+<div class="section" id="iteration-loop">
+<span id="id1"></span><h3>Iteration loop<a class="headerlink" href="#iteration-loop" title="Permalink to this headline">¶</a></h3>
+<p>The progress of execution in the script shown in <a class="reference internal" href="l2l-bin.html"><span class="doc">L2L Experiments</span></a> goes as follows:</p>
+<ol class="arabic simple">
+<li><p>At the beginning, a <em>population</em> of <em>individuals</em>  is created by the <cite>Optimizer</cite> by calling the <cite>Optimizee</cite>’s
+<a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.create_individual" title="l2l.optimizees.optimizee.Optimizee.create_individual"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_individual()</span></code></a> method.</p></li>
+<li><p>The <cite>Optimizer</cite> then puts these <em>individuals</em> in its member variable <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.eval_pop" title="l2l.optimizers.optimizer.Optimizer.eval_pop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">eval_pop</span></code></a>
+and calls its <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer._expand_trajectory" title="l2l.optimizers.optimizer.Optimizer._expand_trajectory"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_expand_trajectory()</span></code></a> method. This is the *key* step to
+starting and continuing the loop and should be done in all new <cite>Optimizer</cite> s added.</p>
+</li>
+<li id="third-step"><p>One <cite>Optimizee</cite> run for each <em>individual</em> (parameter) is created in
+<a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.eval_pop" title="l2l.optimizers.optimizer.Optimizer.eval_pop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">eval_pop</span></code></a> by calling the <cite>Optimizee</cite>’s
+<a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.simulate" title="l2l.optimizees.optimizee.Optimizee.simulate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code></a> method.  Each <cite>Optimizee</cite> run can happen in parallel across
+cores and even across nodes if enabled as described in <a class="reference internal" href="#parallelization"><span class="std std-ref">Parallelization</span></a>.</p></li>
+<li><p>the <cite>Optimizee</cite>’s <a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.simulate" title="l2l.optimizees.optimizee.Optimizee.simulate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code></a> method runs whatever simulation it has to run
+with the given <em>individual</em> (parameter) and returns a Python <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a> with one or more fitness values <a class="footnote-reference brackets" href="#id3" id="id2">1</a>.</p></li>
+<li><p>Once the runs are done, <cite>Optimizer</cite>’s <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.post_process" title="l2l.optimizers.optimizer.Optimizer.post_process"><code class="xref py py-meth docutils literal notranslate"><span class="pre">post_process()</span></code></a> method is called
+with the list of <em>individuals</em> and their fitness values as returned by the <cite>Optimizee</cite>’s
+<a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.simulate" title="l2l.optimizees.optimizee.Optimizee.simulate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code></a> method.  The <cite>Optimizer</cite> can choose to do whatever it wants with
+the fitnesses, and use it to create a new set of <em>individuals</em> which it puts into its
+<a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.eval_pop" title="l2l.optimizers.optimizer.Optimizer.eval_pop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">eval_pop</span></code></a> attribute (after clearing it of the old <em>population</em>).</p></li>
+<li><p>The loop continues from <a class="reference internal" href="#third-step"><span class="std std-ref">3.</span></a></p></li>
+</ol>
+<dl class="footnote brackets">
+<dt class="label" id="id3"><span class="brackets"><a class="fn-backref" href="#id2">1</a></span></dt>
+<dd><p><strong>NOTE:</strong> Even if there is only one fitness value, this function should still return a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="writing-new-algorithms">
+<h2>Writing new algorithms<a class="headerlink" href="#writing-new-algorithms" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>For a new <strong>Optimizee</strong>: Create a copy of the class <a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee" title="l2l.optimizees.optimizee.Optimizee"><code class="xref py py-class docutils literal notranslate"><span class="pre">Optimizee</span></code></a> into a new python
+module with an appropriate name and fill in the functions. E.g. for a DMS task optimizee, you would create
+a module (i.e. directory with a <cite>__init__.py</cite> file) as <cite>l2l/optimizees/dms/</cite> and copy the above class there.</p></li>
+<li><p>For a new <strong>Optimizer</strong>: Create a copy of the class <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer" title="l2l.optimizers.optimizer.Optimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Optimizer</span></code></a> into a new python
+module with an appropriate name and fill in the functions. (same as above)</p></li>
+<li><p>For a new <strong>experiment</strong>: Create a copy of the file <code class="file docutils literal notranslate"><span class="pre">bin/l2l-template.py</span></code> with an appropriate name and fill in
+the <em>TODOs</em>.</p></li>
+<li><p>Add an entry in <code class="file docutils literal notranslate"><span class="pre">bin/logging.yaml</span></code> for the new class/file you created. See <a class="reference internal" href="#logging">logging</a>.</p></li>
+</ul>
+<p>Details for implementing the <cite>Optimizer</cite>, <cite>Optimizee</cite> and experiment follow.</p>
+<div class="section" id="important-data-structures">
+<span id="communication"></span><h3>Important Data Structures<a class="headerlink" href="#important-data-structures" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="trajectory">
+<h4>Trajectory<a class="headerlink" href="#trajectory" title="Permalink to this headline">¶</a></h4>
+<p>The Trajectory is a container that is central to the simulation library. This concept is borrowed from <a class="reference external" href="https://pythonhosted.org/pypet/">PyPet</a>. To quote from the PyPet website:</p>
+<blockquote>
+<div><p>The whole project evolves around a novel container object called trajectory. A trajectory is a container for parameters
+and results of numerical simulations in python. In fact a trajectory instantiates a tree and the tree structure will be
+mapped one to one in the HDF5 file when you store data to disk. …</p>
+<p>… a trajectory contains parameters, the basic building blocks that completely define the initial
+conditions of your numerical simulations. Usually, these are very basic data types, like integers, floats or maybe a
+bit more complex numpy arrays.</p>
+</div></blockquote>
+<p>In the simulations using the L2L Framework, there is a single <a class="reference internal" href="l2l.utils.html#l2l.utils.trajectory.Trajectory" title="l2l.utils.trajectory.Trajectory"><code class="xref py py-class docutils literal notranslate"><span class="pre">Trajectory</span></code></a> object (called
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">traj</span></code>). This object forms the backbone of communication between the optimizer and the optimizee. In short, it is
+used to acheive the following:</p>
+<ol class="arabic simple">
+<li><p>Storage of the parameters of the optimizer, optimizee, and <a class="reference internal" href="#individuals">individuals</a> of the optimizee</p></li>
+<li><p>Storage of the results of our simulation</p></li>
+<li><p>Adaptive exploration of parameters via trajectory expansion.</p></li>
+</ol>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">traj</span></code> object is passed as a mandatory argument to the constructors of both the Optimizee and Optimizer.
+Additionally, we automatically passes this object as an argument to the functions
+<a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.simulate" title="l2l.optimizees.optimizee.Optimizee.simulate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code></a> and <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.post_process" title="l2l.optimizers.optimizer.Optimizer.post_process"><code class="xref py py-meth docutils literal notranslate"><span class="pre">post_process()</span></code></a></p>
+</div>
+<div class="section" id="individual-dicts">
+<span id="individual-dict"></span><span id="id4"></span><h4>Individual-Dict<a class="headerlink" href="#individual-dicts" title="Permalink to this headline">¶</a></h4>
+<p>This is the data structure used to represent <a class="reference internal" href="#individuals">individuals</a>. This is basically a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a> that has the parameter
+names as keys, and parameter values as values. The following need to be noted about the parameters stored in an
+<em>Individual-Dict</em>.</p>
+<ol class="arabic simple">
+<li><p>The parameter names must be the dot-separated full-name (e.g. <code class="docutils literal notranslate"><span class="pre">'sim_control.seed'</span></code>) of the parameter.
+This name must be the name by which it is stored in the <cite>individual</cite> parameter group of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">traj</span></code>.
+To understand this, look at <a class="reference internal" href="#optimizee-constructor"><span class="std std-ref">constructor of Optimizee</span></a>.</p></li>
+<li><p>The dictionary must contain <strong>exactly</strong> those parameters that are going to be explored by the <cite>Optimizer</cite>.
+This is because this dictionary is used to expand the trajectory in the
+<a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.post_process" title="l2l.optimizers.optimizer.Optimizer.post_process"><code class="xref py py-meth docutils literal notranslate"><span class="pre">post_process()</span></code></a> function. See the note about expanding trajectories in
+ref:<cite>optimizer-constructor</cite></p></li>
+</ol>
+<p>In the documentation above, whenever the term <a class="reference internal" href="#individual">individual</a> is used, it is assumed that the object referred to is
+an <cite>Individual-Dict</cite>. Also note that the Individual-Dict is not a separate class but merely a specification for
+specifying individuals of an optimizee via a dict.</p>
+<p>In other places in the documentation, the Individual-Dict may also be referred to as a parameter dict, due to the
+fact that its keys represent parameter names.</p>
+</div>
+</div>
+<div class="section" id="optimizee">
+<span id="traj-interaction"></span><h3>Optimizee<a class="headerlink" href="#optimizee" title="Permalink to this headline">¶</a></h3>
+<p>The optimizee subclasses <a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee" title="l2l.optimizees.optimizee.Optimizee"><code class="xref py py-class docutils literal notranslate"><span class="pre">Optimizee</span></code></a> with a class that contains four mandatory methods
+(Documentation linked below):</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.create_individual" title="l2l.optimizees.optimizee.Optimizee.create_individual"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_individual()</span></code></a> : Called to return a random <a class="reference internal" href="#individual">individual</a> (returns an <a class="reference internal" href="#individual-dict">Individual-Dict</a>)</p></li>
+<li><p><a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.simulate" title="l2l.optimizees.optimizee.Optimizee.simulate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code></a> : Runs the actual simulation and returns a fitness vector</p></li>
+</ol>
+<p>In order to maintain a consistent framework for communication between the optimizer and optimizee it is required to
+enforce certain requirements on the behaviour of the above functions. The details of these requirements for the
+<cite>Optimizee</cite> functions are given below</p>
+<div class="section" id="constructor-of-optimizee">
+<span id="optimizee-constructor"></span><h4>Constructor of Optimizee<a class="headerlink" href="#constructor-of-optimizee" title="Permalink to this headline">¶</a></h4>
+<p>This function may perform any one-time initialization operations that are required for the particular optimizee.
+In addition to this, It <em>must perform</em> the job of initializing parameters in the trajectory. These parameters must
+be created in the parameter subgroup named <cite>individual</cite> (i.e. using <code class="docutils literal notranslate"><span class="pre">traj.parameter.individual.f_add_parameter()</span></code>). The
+following is a contract that must be obeyed by this constructor.</p>
+<blockquote>
+<div><p>All parameters that are explored for the optimizee must be created in the trajectory under the <cite>individual</cite>
+parameter group. Moreover, the names by which they are stored (excluding the <cite>individual</cite>) must be equal to the
+key of the Individual-Dict entry representing that parameter.</p>
+</div></blockquote>
+<p>As an example, if one wanted a parameter named <code class="docutils literal notranslate"><span class="pre">sim_control.seed</span></code> to be a part of the trajectory, one would do
+the following.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">traj</span><span class="o">.</span><span class="n">individual</span><span class="o">.</span><span class="n">f_add_parameter</span><span class="p">(</span><span class="s1">&#39;sim_control.seed&#39;</span><span class="p">,</span> <span class="mi">1010</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If one intends <code class="docutils literal notranslate"><span class="pre">sim_control.seed</span></code> to be a parameter over which to explore, the <a class="reference internal" href="#individual-dict">Individual-Dict</a> describing an
+individual of the optimizee must contain a key named <code class="docutils literal notranslate"><span class="pre">'sim_control.seed'</span></code></p>
+<p><em>NOTE</em> that the parameter group named <cite>individual</cite> itself is created in the constructor of the base <cite>Optimizee</cite> class.
+Thus, the derived class need only implement the addition of parameters as shown above.</p>
+</div>
+<div class="section" id="the-create-individual-function">
+<h4>The <a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.create_individual" title="l2l.optimizees.optimizee.Optimizee.create_individual"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_individual()</span></code></a> function:<a class="headerlink" href="#the-create-individual-function" title="Permalink to this headline">¶</a></h4>
+<p>This must return an <a class="reference internal" href="#individual">individual</a> of the optimizee, i.e. it must return an <a class="reference internal" href="#individual-dict">Individual-Dict</a> representing
+a valid random individual of the optimizee.</p>
+</div>
+<div class="section" id="the-simulate-function">
+<h4>The <a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.simulate" title="l2l.optimizees.optimizee.Optimizee.simulate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code></a> function:<a class="headerlink" href="#the-simulate-function" title="Permalink to this headline">¶</a></h4>
+<p>This function only receives as argument the trajectory <code class="xref py py-obj docutils literal notranslate"><span class="pre">traj</span></code> set to a particular run. Thus it must source all
+required parameters from the <code class="xref py py-obj docutils literal notranslate"><span class="pre">traj</span></code> and the member variables of the <cite>Optimizee</cite> class. It must run the inner loop
+with these parameters and always return a tuple (<em>even for 1-D fitness!!</em>) representing the fitness to be used for
+optimizing.
+_
+See the class documentation for more details: <a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee" title="l2l.optimizees.optimizee.Optimizee"><code class="xref py py-class docutils literal notranslate"><span class="pre">Optimizee</span></code></a></p>
+</div>
+</div>
+<div class="section" id="optimizer">
+<h3>Optimizer<a class="headerlink" href="#optimizer" title="Permalink to this headline">¶</a></h3>
+<p>The optimizer subclasses <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer" title="l2l.optimizers.optimizer.Optimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Optimizer</span></code></a> with a class that contains two mandatory methods:</p>
+<ol class="arabic simple">
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">__init__()</span></code>: This is the constructor which performs the duties of
+initializing the trajectory and the initial <a class="reference internal" href="#generation">generation</a> of the simulation.</p></li>
+<li><p><a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.post_process" title="l2l.optimizers.optimizer.Optimizer.post_process"><code class="xref py py-meth docutils literal notranslate"><span class="pre">post_process()</span></code></a> : knowing the fitness for the current parameters, it
+generates a new set of parameters and runs the next batch of simulations.</p></li>
+</ol>
+<p>And one optional method:</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.end" title="l2l.optimizers.optimizer.Optimizer.end"><code class="xref py py-meth docutils literal notranslate"><span class="pre">end()</span></code></a> : Tertiary method to do cleanup, printing results etc.</p></li>
+</ol>
+<p>Note that in order to maintain a consistent framework for communication between the optimizer and optimizee, we enforce
+a certain protocol for the above function. The details of this protocol are outlined below</p>
+<div class="section" id="constructor-of-optimizer">
+<span id="optimizer-constructor"></span><h4>Constructor of Optimizer<a class="headerlink" href="#constructor-of-optimizer" title="Permalink to this headline">¶</a></h4>
+<p>Perform any one-time initialization tasks including creating optimizer parameters in the trajectory. Note that
+optimizer parameters are created in the root parameter group of <code class="xref py py-obj docutils literal notranslate"><span class="pre">traj</span></code> (i.e. <cite>traj.par.f_add_parameter(…)</cite>).</p>
+<p>Create a list of <a class="reference internal" href="#individuals">individuals</a> by using the <cite>optimizee_create_individual</cite> function. These are the individuals that
+will be simulated in the first generation (i.e. generation index 0). Assign <cite>self.eval_pop</cite> to the list of above
+individuals, and call <cite>self._expand_trajectory()</cite> to expand the trajectory to include the parameters corresponding
+to these individuals.</p>
+<p><cite>self._expand_trajectory()</cite> relies on the fact that the <a class="reference internal" href="#individual">individual</a> objects are <a class="reference internal" href="#individual-dicts">Individual-Dicts</a> and uses the keys
+to access and assign the relevant optimizee parameters in the parameter group <code class="xref py py-obj docutils literal notranslate"><span class="pre">traj.individual</span></code>. This is
+the reason for the contract enforced on the Optimizee constructor</p>
+<p>Note that all the (non-exploring) paramters to the <cite>Optimizer</cite> is passed in to its constructor through a
+<a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.namedtuple" title="(in Python v3.9)"><code class="xref py py-func docutils literal notranslate"><span class="pre">namedtuple()</span></code></a> to keep the paramters documented. For examples see <a class="reference internal" href="l2l.optimizers.evolution.html#l2l.optimizers.evolution.optimizer.GeneticAlgorithmParameters" title="l2l.optimizers.evolution.optimizer.GeneticAlgorithmParameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">GeneticAlgorithmParameters</span></code></a>
+or <a class="reference internal" href="l2l.optimizers.simulatedannealing.html#l2l.optimizers.simulatedannealing.optimizer.SimulatedAnnealingParameters" title="l2l.optimizers.simulatedannealing.optimizer.SimulatedAnnealingParameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulatedAnnealingParameters</span></code></a></p>
+</div>
+<div class="section" id="the-post-process-function">
+<h4>The <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.post_process" title="l2l.optimizers.optimizer.Optimizer.post_process"><code class="xref py py-meth docutils literal notranslate"><span class="pre">post_process()</span></code></a> function:<a class="headerlink" href="#the-post-process-function" title="Permalink to this headline">¶</a></h4>
+<p>This function receives, along with the trajectory <code class="xref py py-obj docutils literal notranslate"><span class="pre">traj</span></code>, a list of tuples. Each tuple has the structure
+<cite>(run_index, run_fitness_tuple)</cite>. The <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer.post_process" title="l2l.optimizers.optimizer.Optimizer.post_process"><code class="xref py py-meth docutils literal notranslate"><span class="pre">post_process()</span></code></a> function also has
+access to the individuals whose fitness was calculated (via the member <cite>self.eval_pop</cite>), and the generation index
+(<cite>self.g</cite>), along with any other user defined member variable.</p>
+<p>Using the above, the function must calculate a new <a class="reference internal" href="#population">population</a> of <a class="reference internal" href="#individuals">individuals</a> to explore (remember individuals
+are always in <a class="reference internal" href="#individual-dict">Individual-Dict</a> form). It must then store this list of individuals in <cite>self.eval_pop</cite> and call
+<cite>self._expand_trajectory()</cite>. [See <a class="reference internal" href="#optimizer-constructor"><span class="std std-ref">Constructor of Optimizer</span></a> for trajectory expansion details]. Also, <cite>self.g</cite>
+must be incremented</p>
+<p>In case one wishes to terminate the simulation after the current generation, one must simply <strong>not call</strong>
+<cite>self._expand_trajectory()</cite>. Do not call <cite>self._expand_trajectory()</cite> with an empty <cite>self.eval_pop</cite> as it will
+raise an error</p>
+<p>Some points to remember are the following:</p>
+<ol class="arabic simple">
+<li><p>The call to <cite>self._expand_trajectory</cite> not only causes the trajectory to store more parameter values to explore, but,
+due to the mechanism underlying <a class="reference internal" href="l2l.utils.html#l2l.utils.trajectory.Trajectory.f_expand" title="l2l.utils.trajectory.Trajectory.f_expand"><code class="xref py py-meth docutils literal notranslate"><span class="pre">f_expand()</span></code></a>, also causes the framework to run
+the optimizee <a class="reference internal" href="l2l.optimizees.html#l2l.optimizees.optimizee.Optimizee.simulate" title="l2l.optimizees.optimizee.Optimizee.simulate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">simulate()</span></code></a> function on these parameters. Look at the
+documentation referenced in the footnote of <a class="reference internal" href="#iteration-loop">iteration-loop</a> for more details on this</p></li>
+<li><p><strong>Always</strong> build the optimizer to maximize fitness. The weights that are passed in to the optimizer constructor
+can be made negative if one wishes to perform minimization</p></li>
+</ol>
+<p>See the class documentation for more details: <a class="reference internal" href="l2l.optimizers.html#l2l.optimizers.optimizer.Optimizer" title="l2l.optimizers.optimizer.Optimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Optimizer</span></code></a></p>
+</div>
+</div>
+<div class="section" id="running-an-l2l-simulation">
+<h3>Running an L2L simulation<a class="headerlink" href="#running-an-l2l-simulation" title="Permalink to this headline">¶</a></h3>
+<p>To run a L2L simulation, copy the file <code class="file docutils literal notranslate"><span class="pre">bin/l2l-template.py</span></code> (see <a class="reference internal" href="l2l-bin.html"><span class="doc">L2L Experiments</span></a>) to
+<code class="file docutils literal notranslate"><span class="pre">bin/l2l-</span><em><span class="pre">optimizeeabbr</span></em><span class="pre">-</span><em><span class="pre">optimizerabbr</span></em><span class="pre">.py</span></code>. Then fill in all the <strong>TODOs</strong> . Especially the parts with the
+initialization of the appropriate <cite>Optimizers</cite> and <cite>Optimizees</cite>. The main enty point to setup and run the simulation
+is the experiment class <a class="reference internal" href="l2l.utils.html#l2l.utils.experiment.Experiment" title="l2l.utils.experiment.Experiment"><code class="xref py py-class docutils literal notranslate"><span class="pre">Experiment</span></code></a>. There are three methods which helps to prepare, run
+and end the simulations.</p>
+<ul class="simple">
+<li><p>The constructor of the experiment class expects a path to store the results to. A folder will be created if it
+does not exist</p></li>
+<li><p><a class="reference internal" href="l2l.utils.html#l2l.utils.experiment.Experiment.prepare_experiment" title="l2l.utils.experiment.Experiment.prepare_experiment"><code class="xref py py-meth docutils literal notranslate"><span class="pre">prepare_experiment()</span></code></a> prepares the experiment. Optional arguments can be
+given such as a jube parameter dictionary.</p></li>
+<li><p><a class="reference internal" href="l2l.utils.html#l2l.utils.experiment.Experiment.run_experiment" title="l2l.utils.experiment.Experiment.run_experiment"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_experiment()</span></code></a> starts the simulation. It expects the <cite>optimizee</cite> and
+<cite>optimizer</cite> objects, corresponding parameters can be optionally given as well but are only important for
+logging purposes.</p></li>
+<li><p><a class="reference internal" href="l2l.utils.html#l2l.utils.experiment.Experiment.end_experiment" title="l2l.utils.experiment.Experiment.end_experiment"><code class="xref py py-meth docutils literal notranslate"><span class="pre">end_experiment()</span></code></a> ends the experiment by instructing the <cite>optimizer</cite> to stop
+and closing the logging.</p></li>
+</ul>
+<p>See the source of <code class="file docutils literal notranslate"><span class="pre">bin/l2l-template.py</span></code> for more details.</p>
+</div>
+<div class="section" id="execution-setup">
+<h3>Execution setup<a class="headerlink" href="#execution-setup" title="Permalink to this headline">¶</a></h3>
+<p>The L2L framework works with JUBE in order to deploy the execution of the different instances of the optimizee on
+the available computational resources. This requires that the trajectory contains a parameter group called <cite>JUBE_params</cite>
+which contains details for the right execution of the program.</p>
+<p><strong>Mandatory</strong> steps to define the execution of the optimizees:</p>
+<ul class="simple">
+<li><p>Add a parameter group to the <code class="xref py py-obj docutils literal notranslate"><span class="pre">traj</span></code> called <cite>JUBE_params</cite> using its <code class="xref py py-meth docutils literal notranslate"><span class="pre">f_add_parameter_group()</span></code>.</p></li>
+<li><p>Setup the execution command <code class="xref py py-attr docutils literal notranslate"><span class="pre">exec</span></code> by using the trajectory <code class="xref py py-meth docutils literal notranslate"><span class="pre">f_add_parameter_to_group()</span></code>.
+Add parameter to group receives three parameters, which in this case should be specified as: <cite>group_name=JUBE_params, key=”exec”, val=&lt;execution command string&gt;</cite>
+This <cite>&lt;execution command string&gt;</cite> will be used to launch individual <cite>optimizees</cite>. An example of a simple call without using MPI calls is: <cite>“python ” + os.path.join(paths.simulation_path, “run_files/run_optimizee.py”</cite></p></li>
+<li><p>Setup the ready and working paths <code class="xref py py-attr docutils literal notranslate"><span class="pre">exec</span></code> by using the trajectory <code class="xref py py-meth docutils literal notranslate"><span class="pre">f_add_parameter_to_group()</span></code>.
+Add parameter to group receives three parameters, which in this case should be specified as:
+<cite>group_name=JUBE_params, key=”paths”, val=&lt;path object&gt;</cite>
+<cite>&lt;path object&gt;</cite> should contain the root working path. An example of this path is:
+<cite>paths = Paths(name, dict(run_num=’test’), root_dir_path=&lt;root_dir_path&gt;, suffix=”-example”)</cite></p></li>
+</ul>
+<p>In order to launch simulations on a laptop or a local cluster without a scheduler, only the mandatory parameters must
+be specified. These parameters are part of the template.</p>
+<p>To launch the simulations on a cluster with a scheduler, the following optional parameters must be defined. They currently match
+slurm but this can also be adjusted to other schedulers.</p>
+<ol class="arabic simple">
+<li><p>Name of the scheduler, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;scheduler&quot;</span></code>, e.g. “Slurm”</p></li>
+<li><p>Command to submit jobs to the schedulers, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;submit_cmd&quot;</span></code>, e.g. “sbatch”</p></li>
+<li><p>Template file for the particular scheduler, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;job_file&quot;</span></code>, e.g. “job.run”</p></li>
+<li><p>Number of nodes to request for each run, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;nodes&quot;</span></code>, e.g. “1”</p></li>
+<li><p>Requested time for the compute resources, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;walltime&quot;</span></code>, e.g. “00:01:00”</p></li>
+<li><p>MPI Processes per node, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;ppn&quot;</span></code>, e.g. “1”</p></li>
+<li><p>CPU cores per MPI process, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;cpu_pp&quot;</span></code>, e.g. “1”</p></li>
+<li><p>Threads per process, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;threads_pp&quot;</span></code>, e.g. “1”</p></li>
+<li><p>Type of emails to be sent from the scheduler, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;mail_mode&quot;</span></code>, e.g. “ALL”</p></li>
+<li><p>Email to notify events from the scheduler, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;mail_address&quot;</span></code>, e.g. “<a class="reference external" href="mailto:me&#37;&#52;&#48;mymail&#46;com">me<span>&#64;</span>mymail<span>&#46;</span>com</a>”</p></li>
+<li><p>Error file for the job, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;err_file&quot;</span></code>, e.g. “stderr”</p></li>
+<li><p>Output file for the job, <code class="xref py py-attr docutils literal notranslate"><span class="pre">&quot;out_file&quot;</span></code>, e.g. “stdout”</p></li>
+<li><p>MPI Processes per job, <a href="#id5"><span class="problematic" id="id6">:atr:`&quot;tasks_per_job&quot;`</span></a>, e.g. “1”</p></li>
+</ol>
+<p>See the :file: ‘l2l-template-scheduler.py’ for a base file with all these parameters.</p>
+</div>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>See <a class="reference internal" href="l2l.optimizees.functions.html#l2l.optimizees.functions.optimizee.FunctionGeneratorOptimizee" title="l2l.optimizees.functions.optimizee.FunctionGeneratorOptimizee"><code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionGeneratorOptimizee</span></code></a> for an example of an <cite>Optimizee</cite> (based on simple function minimization).</p></li>
+<li><p>See <a class="reference internal" href="l2l.optimizers.simulatedannealing.html#l2l.optimizers.simulatedannealing.optimizer.SimulatedAnnealingOptimizer" title="l2l.optimizers.simulatedannealing.optimizer.SimulatedAnnealingOptimizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimulatedAnnealingOptimizer</span></code></a> for an example of an implementation of simulated annealing <cite>Optimizer</cite>.</p></li>
+<li><p>See <a class="reference internal" href="l2l-bin.html#l2l-experiments"><span class="std std-ref">L2L Experiments</span></a> for an example implementation of an L2L experiment with an arbitrary <cite>Optimizee</cite> and <cite>Optimizer</cite>.</p></li>
+</ul>
+</div>
+<div class="section" id="data-postprocessing">
+<span id="id7"></span><h2>Data postprocessing<a class="headerlink" href="#data-postprocessing" title="Permalink to this headline">¶</a></h2>
+<p>Todo…</p>
+</div>
+<div class="section" id="parallelization">
+<span id="id8"></span><h2>Parallelization<a class="headerlink" href="#parallelization" title="Permalink to this headline">¶</a></h2>
+<p>We also support running different instances of the experiments on different cores and hosts using Jube.</p>
+</div>
+<div class="section" id="logging">
+<span id="id9"></span><h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>Always use the <cite>logger</cite> object obtained from:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;heirarchical.logger.name&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>to output messages to a console/file.</p>
+</li>
+<li><p>Setting up logging in a multiprocessing environment is a mind-numbingly painful process. Therefore, to keep users
+sane, we have provided the module <a class="reference internal" href="l2l.logging_tools.html#module-l2l.logging_tools" title="l2l.logging_tools"><code class="xref py py-mod docutils literal notranslate"><span class="pre">logging_tools</span></code></a> with 2 functions which can be used to conveniently setup
+logging. See the module documentation for more details.</p></li>
+<li><p>As far as using loggers is concerned, the convention is one logger per file. The name of the logger should reflect
+module hierarchy. For example, the logger used in the file <cite>optimizers/crossentropy/optimizer.py</cite> is named
+<code class="docutils literal notranslate"><span class="pre">'optimizers.crossentropy'</span></code></p></li>
+<li><p>A logger is uniquely identified by its name throughout the python process (i.e. it’s kinda like a global variable).
+Thus if two different files use <code class="docutils literal notranslate"><span class="pre">'optimizer.crossentropy'</span></code> then their logs will be redirect to the same logger.</p></li>
+</ol>
+<p>You can modify the <code class="file docutils literal notranslate"><span class="pre">bin/logging.yaml</span></code> file to choose the output level and to redirect messages to console or
+file.</p>
+<p>See the <a class="reference external" href="https://docs.python.org/3/howto/logging.html">Python logging tutorial</a> for more details.</p>
+</div>
+<div class="section" id="additional-utilities-and-protocols">
+<h2>Additional Utilities and Protocols<a class="headerlink" href="#additional-utilities-and-protocols" title="Permalink to this headline">¶</a></h2>
+<p>While the essential interface between Optimizers and Optimizers is completely defined above, The practical
+implementation of Optimizers and Optimizees demands certain frequently used data structures and functions. These are
+detailed here</p>
+<div class="section" id="dict-to-list-to-dict-conversion">
+<h3>dict-to-list-to-dict Conversion<a class="headerlink" href="#dict-to-list-to-dict-conversion" title="Permalink to this headline">¶</a></h3>
+<p>The benefit of treating <a class="reference internal" href="#individuals">individuals</a> as <a class="reference internal" href="#individual-dicts">Individual-Dicts</a> is that it allows properly named parameters in the optimizee,
+however this comes at the cost of the optimizer being unable to generalize across different Optimizee classes with
+different <a class="reference internal" href="#individual-dicts">Individual-Dicts</a> representing the individual. One solution for this is that most Optimizers prefer to behave
+like they are optimizing a vector (in the case of python, a list). Thus, the Optimizer requires the ability to convert
+back and forth between a list and a dictionary. For this purpose, we have the following functions</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="l2l.html#l2l.dict_to_list" title="l2l.dict_to_list"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dict_to_list()</span></code></a></p></li>
+<li><p><a class="reference internal" href="l2l.html#l2l.list_to_dict" title="l2l.list_to_dict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_to_dict()</span></code></a></p></li>
+</ol>
+<p>Check their documentation for more details.</p>
+</div>
+</div>
+</div>
+
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        
+      </div><!-- /row -->
+
+      <!-- row -->
+      <div class="row footer-relbar">
+<div id="navbar-related" class=" related navbar navbar-default" role="navigation" aria-label="related navigation">
+  <div class="navbar-inner">
+    <ul class="nav navbar-nav ">
+        <li><a href="index.html">L2L 1.0.0-beta documentation</a></li>
+    </ul>
+<ul class="nav navbar-nav pull-right hidden-xs hidden-sm">
+      
+        <li><a href="quickstart.html" title="Quickstart" >previous</a></li>
+        <li><a href="l2l.html" title="API Reference" >next</a></li>
+        <li><a href="py-modindex.html" title="Python Module Index" >modules</a></li>
+        <li><a href="genindex.html" title="General Index" >index</a></li>
+        <li><a href="#">top</a></li> 
+      
+    </ul>
+  </div>
+</div>
+      </div><!-- /row -->
+
+      <!-- footer -->
+      <footer role="contentinfo">
+          &copy; Copyright 2017, Anand Subramoney.
+        Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 3.3.0.
+      </footer>
+      <!-- /footer -->
+
+    </div>
+    <!-- /container -->
+
+  </body>
+</html>
