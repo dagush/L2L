@@ -1464,99 +1464,10 @@ to setup
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;build_neural_circuit 1 1 1
-  let config_file ( word "individual_config_" individual_id ".csv" )
+  let config_file "individual_config.csv"
   read_l2l_config config_file ;"individual01.csv"
   ;load_l2l_parameters
   stop
-
-  ;;;;;;;;;;;;;;Setup Neuron types;;;;;;;;;;;;;;
-  ;;;;;;;;;;;;;;;;Neuron type1:
-  setup-neurontype 1 -65 -55 0.08 -75 3 -75
-  set-neurontype-learning-params 1 0.045 75 0.045 -50 9 1 (8 + 3) (15 + 3) ;[ #pneurontypeid #ppos_hebb_weight #ppos_time_window #pneg_hebb_weight #pneg_time_window #pmax_synaptic_weight
-                                    ;#pmin_synaptic_weight #ppos_syn_change_interval #pneg_syn_change_interval]
-
-
-  ;;;;;;;;;;;;;;;;Neuron type2:
-  setup-neurontype 2 -65 -55 0.08 -70 1 -70 ;(typeid restpot threshold decayr refractpot refracttime)
-  set-neurontype-learning-params 2 0.09 55 0.09 -25 9 1 8 15
-
-  ;;;;;;;;;;;;;;;;Create the Neural circuit (brain) of the insect
-
-  ;;;;;;;;;;;;;;Layer 1: Afferent neurons with receptors ;;;;;;;;;;;;;;;
-  setup-normal-neuron 1 15 10  11 1 ;;[layernum pposx pposy pid pneurontypeid]
-  setup-input-neuron 5 10  1  11 20 1 pspikefrequency ;;[pposx pposy pid ppostsynneuron psynapseefficacy pcoding pnumofspikes]
-
-  setup-normal-neuron 1 15 15  12 1 ;;setup-normal-neuron [pposx pposy pid pthreshold  prestpot pdecayr prefractpot pintrefrectp]
-  setup-input-neuron    5 15  2  12 20 1 pspikefrequency ;;[pposx pposy pid ppostsynneuron ipsynapseefficacy pcoding pnumofspikes]
-
-  setup-normal-neuron 1 15 20  13 1 ;;setup-normal-neuron [pposx pposy pid pthreshold  prestpot pdecayr prefractpot pintrefrectp]
-  setup-input-neuron    5 20  3  13 20 1 pspikefrequency ;;[pposx pposy pid ppostsynneuron ipsynapseefficacy pcoding pnumofspikes]
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ;;;;;;;;;;;;;;; Layer 2: First hidden layer ;;;;;;;;;;;;;;;;;;;;;;
-  ;Motoneuron with rotate actuator:
-  setup-normal-neuron 2 25 14  21 1
-  setup-input-neuron   25 5  4  21 20 1 pspikefrequency
-  ;Motoneuron with move actuator:
-  setup-normal-neuron 2 25 19  22 1
-  setup-input-neuron   25 30  5  22 20 1 pspikefrequency
-
-  ;;;;;;;;;;;;;; Synapses from Layer 1 to Layer 2 ;;;;;;;;;;;;;;;;;;
-  ;;Synapse from afferent neuron 1001 to Motoneurons:
-  setup-synapse   11  21 5 excitatory_synapse 3 true
-  setup-synapse   11  22 5 excitatory_synapse 3 true
-
-  ;;Synapse from afferent neuron 1002 to Motoneurons:
-  setup-synapse   12  21 5 excitatory_synapse 3 true
-  setup-synapse   12  22 5 excitatory_synapse 3 true
-
-  ;;Synapse from afferent neuron 1003 to Motoneurons:
-  setup-synapse   13  21 5 excitatory_synapse 3 true
-  setup-synapse   13  22 5 excitatory_synapse 3 true
-
-  ;;;;;;;;;;;;;;  Layer 3: Output layer ;;;;;;;;;;;;;;;;;;
-  ;;Actuator move forward:
-  setup-normal-neuron 3 35 19  31 1
-  ;;Actuator rotate:
-  setup-normal-neuron 3 35 14  32 1
-
-  ;;;;;;;;;;;;; Synapses from Layer 2 to Layer 3 ;;;;;;;;;;;;;;;;;;;;
-
-  ;;Mutual inhibitory synapses between Motoneurons:
-  setup-synapse  21  22 22 inhibitory_synapse 3 false
-  setup-synapse  22  21 8 inhibitory_synapse 3 false
-  ;;Positive Synapsis from Nociceptive Motoneuron to rotate actuator (no plasticity):
-  setup-synapse  21  32 11 excitatory_synapse 3 false
-  ;;Positive Synapsis from Reward Motoneuron to move forward actuator (no plasticity):
-  setup-synapse  22  31 11 excitatory_synapse 3 false
-
-  ;;;;;;;;;;;;;;;;;;;; Oscillator (Pacemaker) ;;;;;;;;;;;;;;;;;;;;;;;
-  setup-normal-neuron 2 16 25  23 2
-  setup-normal-neuron 2 22 25  24 2
-  setup-synapse  23  24 15 excitatory_synapse 2 false ;(no plasticity needed)
-  setup-synapse  24  23 15 excitatory_synapse 3 false ;(no plasticity needed)
-  setup-input-neuron 11 25  6  23 20 1 pspikefrequency ;;Voltage clamp to start pacemaker
-  ;;Synapse from Pacemaker to Reward Motoneuron:
-  setup-synapse  23  22 3.5 excitatory_synapse 3 false ;4.62
-
-  ;; Start insect hearth
-  feed-input-neuron_by_label  6 1
-
-  ask patches with [ pxcor = 102 and pycor = 46 ] [set pcolor black]
-  let creatureid create-creature 102 30 1  5  4  31  32;;[#xpos #ypos #creature_id #reward_neuron #pain_neuron #move_neuron #rotate_neuron]
-
-  ;;;;;;;;;;Create Visual sensors;;;;;;;;;
-  create-visual-sensor  1 0  white  1 creatureid;[ psensor_id pposition colour_sensitive attached_neuron attached_creature]
-  create-visual-sensor  2 0 red  2 creatureid;[ psensor_id pposition colour_sensitive attached_neuron attached_creature]
-  create-visual-sensor  3 0 green  3 creatureid;[ psensor_id pposition colour_sensitive attached_neuron attached_creature]
-
-  ;;;;;;;;;;Create Sightline ;;;;;;;;;;;;;
-  let sightlineid create-sightline
-  attach-sightline-to-creature creatureid sightlineid
-
-  ;; Activate training mode
-  set istrainingmode? true
 
 end
 
@@ -1636,7 +1547,7 @@ to go
 
  if ticks >= ( iterations_limit - 1)
  [
-    let result_file ( word "individual_result_" individual_id ".csv" )
+    let result_file "individual_result.csv"
     write_l2l_results result_file
     stop
  ]
@@ -1763,7 +1674,7 @@ INPUTBOX
 1249
 84
 neuronid_monitor1
-40.0
+31.0
 1
 0
 Number
@@ -1774,7 +1685,7 @@ INPUTBOX
 1247
 299
 neuronid_monitor2
-41.0
+30.0
 1
 0
 Number
@@ -1908,7 +1819,7 @@ SWITCH
 490
 enable_plots?
 enable_plots?
-1
+0
 1
 -1000
 
@@ -4571,7 +4482,7 @@ INPUTBOX
 1400
 78
 iterations_limit
-0.0
+500000.0
 1
 0
 Number
@@ -4585,7 +4496,7 @@ individual_id
 individual_id
 1
 500
-3.0
+1.0
 1
 1
 NIL
@@ -4980,9 +4891,8 @@ NetLogo 6.2.0
     <setup>setup</setup>
     <go>go</go>
     <metric>count turtles</metric>
-    <steppedValueSet variable="individual_id" first="1" step="1" last="8"/>
     <enumeratedValueSet variable="iterations_limit">
-      <value value="5000"/>
+      <value value="50000"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
