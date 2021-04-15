@@ -72,8 +72,7 @@ class NeuroEvolutionOptimizee(Optimizee):
         except FileExistsError:
             shutil.rmtree(self.dir_path)
             os.mkdir(self.dir_path)
-        else:
-            print('Cannot create directory {}'.format(self.dir_path))
+
         individual = {
             'weights': weights,
             'plasticity': plasticity,
