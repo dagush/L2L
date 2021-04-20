@@ -10,7 +10,7 @@ from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 
 NeuroEvolutionOptimizeeParameters = namedtuple(
-    'NeuroEvoOptimizeeParameters', ['path', 'seed'])
+    'NeuroEvoOptimizeeParameters', ['path', 'seed', 'n_generation'])
 
 
 class NeuroEvolutionOptimizee(Optimizee):
@@ -19,6 +19,7 @@ class NeuroEvolutionOptimizee(Optimizee):
         self.param_path = parameters.path
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
+        self.n_generation = parameters.n_generation
         self.rng = np.random.default_rng(parameters.seed)
         self.dir_path = ''
         fp = pathlib.Path(__file__).parent.absolute()
@@ -45,8 +46,8 @@ class NeuroEvolutionOptimizee(Optimizee):
         # create individual
         individual = {
             'weights': weights,
-            'plasticity': plasticity,
-            'delays': delays
+            'plasticity': np.round(plasticity).astype(int),
+            'delays': np.round(delays).astype(int)
         }
         return individual
 
@@ -69,7 +70,9 @@ class NeuroEvolutionOptimizee(Optimizee):
                                      'individual{}'.format(self.ind_idx))
         try:
             os.mkdir(self.dir_path)
-        except FileExistsError:
+        except FileExistsError as fe:
+            print(fe)
+            print("Removing folder and recreating it {}".format(self.dir_path))
             shutil.rmtree(self.dir_path)
             os.mkdir(self.dir_path)
 
@@ -87,15 +90,18 @@ class NeuroEvolutionOptimizee(Optimizee):
         model_path = self.config['model_path']
         model_name = self.config['model_name']
         headless_path = self.config['netlogo_headless_path']
+        # Full model path with name
+        model = os.path.join(model_path, model_name)
         # copy model to the created directory
-        shutil.copyfile(model_path, os.path.join(self.dir_path, model_name))
+        shutil.copyfile(model, os.path.join(self.dir_path, model_name))
         # call netlogo
         subdir_path = os.path.join(self.dir_path, model_name)
         try:
             subprocess.run(['bash', '{}'.format(headless_path),
                             '--model', '{}'.format(subdir_path),
                             '--experiment', 'experiment1',
-                            '--table', 'table1.csv'])
+                            '--table', 'table1.csv'],
+                           check=True)
         except subprocess.CalledProcessError as cpe:
             print('Optimizee process error {}'.format(cpe))
         file_path = os.path.join(self.dir_path, "individual_result.csv")
@@ -105,8 +111,20 @@ class NeuroEvolutionOptimizee(Optimizee):
         csv = pd.read_csv(file_path, header=None, na_filter=False)
         # We need the last row and first column
         fitness = csv.iloc[-1][0]
-        print('Fitness in generation {} individual {}'.format(self.generation,
-                                                              self.ind_idx))
+        print('Fitness {} in generation {} individual {}'.format(fitness,
+                                                                 self.generation,
+                                                                 self.ind_idx))
+        # save every n generation the results
+        if self.generation > 1 and (self.generation + 1) % self.n_generation == 0:
+            # create folder if not existent
+            result_folder = os.path.join(self.param_path, 'results')
+            if not os.path.exists(result_folder):
+                os.mkdir(result_folder)
+            # rename to individual_GEN_INDEX_results.csv
+            results_filename = "individual_{}_{}_result.csv".format(
+                self.generation, self.ind_idx)
+            shutil.copyfile(file_path, os.path.join(
+                result_folder, results_filename))
         # remove directory
         shutil.rmtree(self.dir_path)
         return (fitness,)
