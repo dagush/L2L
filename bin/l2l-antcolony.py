@@ -14,7 +14,7 @@ def run_experiment():
 
     # Optimizee params
     optimizee_parameters = AntColonyOptimizeeParameters(
-        path=experiment.root_dir_path, seed=1)
+        path=experiment.root_dir_path, seed=1, n_generation=10)
     optimizee = AntColonyOptimizee(traj, optimizee_parameters)
 
     optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=4,
