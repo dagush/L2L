@@ -84,7 +84,7 @@ class NeuroEvolutionOptimizee(Optimizee):
         # create the csv file and save it in the created directory
         df = pd.DataFrame(individual)
         df = df.T
-        df.to_csv(os.path.join(self.dir_path, 'individual_config.csv'.format(self.ind_idx)),
+        df.to_csv(os.path.join(self.dir_path, 'individual_config.csv'),
                   header=False, index=False)
         # get paths etc. from config file
         model_path = self.config['model_path']
@@ -115,7 +115,7 @@ class NeuroEvolutionOptimizee(Optimizee):
                                                                  self.generation,
                                                                  self.ind_idx))
         # save every n generation the results
-        if self.generation > 1 and (self.generation + 1) % self.n_generation == 0:
+        if self.generation > 1 and self.generation % self.n_generation == 0:
             # create folder if not existent
             result_folder = os.path.join(self.param_path, 'results')
             if not os.path.exists(result_folder):

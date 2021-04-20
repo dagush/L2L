@@ -10,7 +10,7 @@ from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 
 AntColonyOptimizeeParameters = namedtuple(
-    'AntColonyOptimizeeParameters', ['path', 'seed'])
+    'AntColonyOptimizeeParameters', ['path', 'seed', 'n_generation'])
 
 
 class AntColonyOptimizee(Optimizee):
@@ -19,6 +19,7 @@ class AntColonyOptimizee(Optimizee):
         self.param_path = parameters.path
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
+        self.n_generation = parameters.n_generation
         self.rng = np.random.default_rng(parameters.seed)
         self.dir_path = ''
         fp = pathlib.Path(__file__).parent.absolute()
@@ -43,7 +44,7 @@ class AntColonyOptimizee(Optimizee):
         # create individual
         individual = {
             'weights': weights,
-            'delays': delays
+            'delays': np.round(delays).astype(int)
         }
         return individual
 
@@ -71,12 +72,12 @@ class AntColonyOptimizee(Optimizee):
 
         individual = {
             'weights': weights,
-            'delays': delays.astype(int)
+            'delays': np.round(delays).astype(int)
         }
         # create the csv file and save it in the created directory
         df = pd.DataFrame(individual)
         df = df.T
-        df.to_csv(os.path.join(self.dir_path, 'individual_config.csv'.format(self.ind_idx)),
+        df.to_csv(os.path.join(self.dir_path, 'individual_config.csv'),
                   header=False, index=False)
         # get paths etc. from config file
         model_path = self.config['model_path']
@@ -90,7 +91,8 @@ class AntColonyOptimizee(Optimizee):
             subprocess.run(['bash', '{}'.format(headless_path),
                             '--model', '{}'.format(subdir_path),
                             '--experiment', 'experiment1',
-                            '--table', 'table1.csv'])
+                            '--table', 'table1.csv'],
+                           check=True)
         except subprocess.CalledProcessError as cpe:
             print('Optimizee process error {}'.format(cpe))
         file_path = os.path.join(self.dir_path, "individual_result.csv")
@@ -100,10 +102,20 @@ class AntColonyOptimizee(Optimizee):
         csv = pd.read_csv(file_path, header=None, na_filter=False)
         # We need the last row and first column
         fitness = csv.iloc[-1][0]
-        print('Fitness {}in generation {} individual {}'.format(
-            fitness,
-            self.generation,
-            self.ind_idx))
+        print('Fitness {} in generation {} individual {}'.format(fitness,
+                                                                 self.generation,
+                                                                 self.ind_idx))
+        # save every n generation the results
+        if self.generation % self.n_generation == 0:
+            # create folder if not existent
+            result_folder = os.path.join(self.param_path, 'results')
+            if not os.path.exists(result_folder):
+                os.mkdir(result_folder)
+            # rename to individual_GEN_INDEX_results.csv
+            results_filename = "individual_{}_{}_result.csv".format(
+                self.generation, self.ind_idx)
+            shutil.copyfile(file_path, os.path.join(
+                result_folder, results_filename))
         # remove directory
         shutil.rmtree(self.dir_path)
         return (fitness,)
