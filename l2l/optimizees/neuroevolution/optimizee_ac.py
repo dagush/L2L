@@ -83,8 +83,10 @@ class AntColonyOptimizee(Optimizee):
         model_path = self.config['model_path']
         model_name = self.config['model_name']
         headless_path = self.config['netlogo_headless_path']
+        # Full model path with name
+        model = os.path.join(model_path, model_name)
         # copy model to the created directory
-        shutil.copyfile(model_path, os.path.join(self.dir_path, model_name))
+        shutil.copyfile(model, os.path.join(self.dir_path, model_name))
         # call netlogo
         subdir_path = os.path.join(self.dir_path, model_name)
         try:
