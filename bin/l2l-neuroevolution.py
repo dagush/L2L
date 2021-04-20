@@ -14,11 +14,11 @@ def run_experiment():
 
     # Optimizee params
     optimizee_parameters = NeuroEvolutionOptimizeeParameters(
-        path=experiment.root_dir_path, seed=1)
+        path=experiment.root_dir_path, seed=1, n_generation=10)
     optimizee = NeuroEvolutionOptimizee(traj, optimizee_parameters)
 
     optimizer_seed = 1234
-    optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=2,
+    optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=4,
                                                       cx_prob=0.7,
                                                       mut_prob=0.5,
                                                       n_iteration=3,
@@ -29,7 +29,7 @@ def run_experiment():
                                                       )
 
     optimizer = GeneticAlgorithmOptimizer(traj, optimizee_create_individual=optimizee.create_individual,
-                                          optimizee_fitness_weights=(-0.1,),
+                                          optimizee_fitness_weights=(1,),
                                           parameters=optimizer_parameters)
     # Run experiment
     experiment.run_experiment(optimizer=optimizer, optimizee=optimizee,
