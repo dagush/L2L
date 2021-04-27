@@ -30,7 +30,11 @@ from scipy import integrate
 
 
 class SingleNeuronFit:
-    def __init__(self, neuron_name, task=1, simulator="Eden", v1, v2, path="", targets = [20, 80, 0, -55]):
+    def __init__(self, neuron_name, 
+                 na_s_soma = 30, kdr_soma = 30, k_soma = 15, cal_soma = 20, cah_dend = 10, 
+                 kca_dend = 35, h_dend = 25, na_axon = 200, k_axon = 200, leak = 1/3e-2,
+                 task=1, simulator="Eden", path="", targets = [20, 80, 0, -55]):
+        
         random.seed(12345)
         
         # inputs
@@ -73,7 +77,7 @@ class SingleNeuronFit:
         self.model_current_signals = []
         self.model_voltage_signals = {}
         self.model_time_axis = []
-        
+               
         #parameters and variables optimizer part
         self.fitness = -1000
         
@@ -85,6 +89,16 @@ class SingleNeuronFit:
             self.get_pulse_characteristics()
             
         #functions model part
+        change_condDensity(self, na_s_soma, "na_s_soma")
+        change_condDensity(self, kdr_soma, "kdr_soma")
+        change_condDensity(self, k_soma, "k_soma")
+        change_condDensity(self, cal_soma, "cal_soma")
+        change_condDensity(self, cah_dend, "cah_dend")
+        change_condDensity(self, kca_dend, "kca_dend")
+        change_condDensity(self, h_dend, "h_dend")
+        change_condDensity(self, na_axon, "na_axon")
+        change_condDensity(self, k_axon, "k_axon")
+        change_condDensity(self, leak, "leak")
         self.create_NML_network()
         
         if self.simulator == "Eden":
@@ -424,13 +438,14 @@ class NeuronOptimizee(Optimizee):
         return
 
     def simulate_(self):
-        neuron_names_selection = ['20160802A', '20160802D']
-        neuron_names_selection = ['20160802D']
-
+        neuron_names_selection = ['20160802D'] #for now only works for one cell at a time!
         self.cellData = {}
 
         for neuron_name in neuron_names_selection:
-            self.cellData[neuron_name] = SingleNeuronFit(neuron_name, self.v1, self.v2, self.path)
+            self.cellData[neuron_name] = SingleNeuronFit(neuron_name, 
+                                                         self.na_s_soma, self.kdr_soma, self.k_soma, self.cal_soma, self.cah_dend,
+                                                         self.kca_dend, self.h_dend. self.na_axon, self.k_axon, self.leak,
+                                                         path=self.path)
         return self.get_fitness()
 
     def get_fitness(self):
@@ -440,8 +455,16 @@ class NeuronOptimizee(Optimizee):
     def simulate(self, trajectory):
 
         self.id = trajectory.individual.ind_idx
-        self.v1 = trajectory.individual.v1
-        self.v2 = trajectory.individual.v2
+        self.na_s_soma = trajectory.individual.na_s_soma
+        self.kdr_soma = trajectory.individual.kdr_soma
+        self.k_soma = trajectory.individual.k_soma
+        self.cal_soma = trajectory.individual.cal_soma
+        self.cah_dend = trajectory.individual.cah_dend
+        self.kca_dend = trajectory.individual.kca_dend
+        self.h_dend = trajectory.individual.h_dend
+        self.na_axon = trajectory.individual.na_axon
+        self.k_axon = trajectory.individual.k_axon
+        self.leak = trajectory.individual.leak
         self.init_(trajectory)
 
         plt.rcParams['figure.figsize'] = [12, 6]
@@ -464,33 +487,30 @@ class NeuronOptimizee(Optimizee):
         """
         # Define the first solution candidate randomly
         # na_s_soma, kdr_soma, k_soma, cal_soma, cah_dend, kca_dend, h_dend, leak_all
-        self.bound_gr = [1, 2]
-        self.na_s_soma = [15, 60]
-        self.kdr_soma = [15, 60]
-        self.k_soma = [7.5, 30]
-        self.cal_soma = [10, 40]
-        self.cah_dend = [5, 20]
-        self.kca_dend = [17.5, 70]
-        self.h_dend = [12.5, 50]
-        self.na_axon = [100, 400]
-        self.k_axon = [100, 400]
-        self.leak = [0.65e-2, 2.6e-2]
-        return {'v1': self.random_state.rand() * (self.bound_gr[1] - self.bound_gr[0]) + self.bound_gr[0],
-                'v2': self.random_state.rand() * (self.bound_gr[1] - self.bound_gr[0]) + self.bound_gr[0],
-                'na_s_soma': self.random_state.rand() * (self.na_s_soma[1] - self.na_s_soma[0]) + self.na_s_soma[0],
-                'kdr_soma': self.random_state.rand() * (self.kdr_soma[1] - self.kdr_soma[0]) + self.kdr_soma[0], 
-                'k_soma': self.random_state.rand() * (self.k_soma[1] - self.k_soma[0]) + self.k_soma[0],
-                'cal_soma': self.random_state.rand() * (self.cal_soma[1] - self.cal_soma[0]) + self.cal_soma[0], 
-                'cah_dend': self.random_state.rand() * (self.cah_dend[1] - self.cah_dend[0]) + self.cah_dend[0],
-                'kca_dend': self.random_state.rand() * (self.kca_dend[1] - self.kca_dend[0]) + self.kca_dend[0],
-                'h_dend': self.random_state.rand() * (self.h_dend[1] - self.h_dend[0]) + self.h_dend[0],
-                'na_axon': self.random_state.rand() * (self.na_axon[1] - self.na_axon[0]) + self.na_axon[0],
-                'k_axon': self.random_state.rand() * (self.k_axon[1] - self.k_axon[0]) + self.k_axon[0],
-                'leak': self.random_state.rand() * (self.leak[1] - self.leak[0]) + self.leak[0]}
+        self.bound_na_s_soma = [15, 60]
+        self.bound_kdr_soma = [15, 60]
+        self.bound_k_soma = [7.5, 30]
+        self.bound_cal_soma = [10, 40]
+        self.bound_cah_dend = [5, 20]
+        self.bound_kca_dend = [17.5, 70]
+        self.bound_h_dend = [12.5, 50]
+        self.bound_na_axon = [100, 400]
+        self.bound_k_axon = [100, 400]
+        self.bound_leak = [0.65e-2, 2.6e-2]
+                 
+        return {'na_s_soma': self.random_state.rand() * (self.bound_na_s_soma[1] - self.bound_na_s_soma[0]) + self.bound_na_s_soma[0],
+                'kdr_soma': self.random_state.rand() * (self.bound_kdr_soma[1] - self.bound_kdr_soma[0]) + self.bound_kdr_soma[0], 
+                'k_soma': self.random_state.rand() * (self.bound_k_soma[1] - self.bound_k_soma[0]) + self.bound_k_soma[0],
+                'cal_soma': self.random_state.rand() * (self.bound_cal_soma[1] - self.bound_cal_soma[0]) + self.bound_cal_soma[0], 
+                'cah_dend': self.random_state.rand() * (self.bound_cah_dend[1] - self.bound_cah_dend[0]) + self.bound_cah_dend[0],
+                'kca_dend': self.random_state.rand() * (self.bound_kca_dend[1] - self.bound_kca_dend[0]) + self.bound_kca_dend[0],
+                'h_dend': self.random_state.rand() * (self.bound_h_dend[1] - self.bound_h_dend[0]) + self.bound_h_dend[0],
+                'na_axon': self.random_state.rand() * (self.bound_na_axon[1] - self.bound_na_axon[0]) + self.bound_na_axon[0],
+                'k_axon': self.random_state.rand() * (self.bound_k_axon[1] - self.bound_k_axon[0]) + self.bound_k_axon[0],
+                'leak': self.random_state.rand() * (self.bound_leak[1] - self.bound_leak[0]) + self.bound_leak[0]}
 
     def bounding_func(self, individual):
         return individual
-
 
     def end(self):
         logger.info("End of all experiments. Cleaning up...")
