@@ -28,6 +28,8 @@ import scipy.fftpack
 from scipy.signal import find_peaks
 from scipy import integrate
 
+from collections import namedtuple
+
 NeuronOptimizeeParameters = namedtuple('NeuronOptimizeeParameters', [])
 
 class SingleNeuronFit:
