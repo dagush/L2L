@@ -447,7 +447,7 @@ class NeuronOptimizee(Optimizee):
         for neuron_name in neuron_names_selection:
             self.cellData[neuron_name] = SingleNeuronFit(neuron_name, 
                                                          self.na_s_soma, self.kdr_soma, self.k_soma, self.cal_soma, self.cah_dend,
-                                                         self.kca_dend, self.h_dend. self.na_axon, self.k_axon, self.leak,
+                                                         self.kca_dend, self.h_dend, self.na_axon, self.k_axon, self.leak,
                                                          path=self.path)
         return self.get_fitness()
 
