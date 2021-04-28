@@ -8,11 +8,13 @@ import numpy as np
 import random
 import matplotlib.pyplot as pl
 
-from singleneuron_class import SingleNeuron
+#from singleneuron_class import SingleNeuron
 
 from l2l import sdict
 from l2l.optimizees.optimizee import Optimizee
 import ast
+
+import eden_tools
 
 from pyneuroml import pynml
 from pyneuroml.pynml import print_comment_v
@@ -42,7 +44,7 @@ class SingleNeuronFit:
         
         # inputs
         self.neuron_name = neuron_name
-        self.path = path
+        self.path = os.getcwd()
         self.task = task
         self.simulator = simulator
         self.targets = targets
@@ -52,7 +54,7 @@ class SingleNeuronFit:
             os.chdir(self.path)
             rawdata_path = os.path.realpath("../dataNora")
             self.experimental_data = SingleNeuron(self.neuron_name, path = rawdata_path)
-        os.chdir(self.path)
+        #os.chdir(self.path)
         
         #parameters and variables experimental part
         self.experimental_temp = 26
@@ -92,16 +94,16 @@ class SingleNeuronFit:
             self.get_pulse_characteristics()
             
         #functions model part
-        change_condDensity(self, na_s_soma, "na_s_soma")
-        change_condDensity(self, kdr_soma, "kdr_soma")
-        change_condDensity(self, k_soma, "k_soma")
-        change_condDensity(self, cal_soma, "cal_soma")
-        change_condDensity(self, cah_dend, "cah_dend")
-        change_condDensity(self, kca_dend, "kca_dend")
-        change_condDensity(self, h_dend, "h_dend")
-        change_condDensity(self, na_axon, "na_axon")
-        change_condDensity(self, k_axon, "k_axon")
-        change_condDensity(self, leak, "leak")
+        self.change_condDensity(na_s_soma, "na_s_soma")
+        self.change_condDensity(kdr_soma, "kdr_soma")
+        self.change_condDensity(k_soma, "k_soma")
+        self.change_condDensity(cal_soma, "cal_soma")
+        self.change_condDensity(cah_dend, "cah_dend")
+        self.change_condDensity(kca_dend, "kca_dend")
+        self.change_condDensity(h_dend, "h_dend")
+        self.change_condDensity(na_axon, "na_axon")
+        self.change_condDensity(k_axon, "k_axon")
+        self.change_condDensity(leak, "leak")
         self.create_NML_network()
         
         if self.simulator == "Eden":
@@ -170,12 +172,13 @@ class SingleNeuronFit:
         self.pulse_heights = pulse_heights
 
     def create_NML_network(self):
-        os.chdir(os.path.realpath('../NMLfiles'))
+        os.chdir('/home/jovyan/work/ClassNora')
 
         # Create NeuroML file
         nml_doc = nml.NeuroMLDocument(id="net")
 
         # Include cell file
+        
         incl = nml.IncludeType(href="C" + self.neuron_name[2:] + "_scaled_resample_5.cell.nml")
         nml_doc.includes.append(incl)
 
@@ -240,12 +243,12 @@ class SingleNeuronFit:
         os.chdir(self.path)
 
     def run_network_with_Eden(self):
-        os.chdir(os.path.realpath('../NMLfiles'))
+        os.chdir('/home/jovyan/work/ClassNora')
         self.results_Eden = eden_tools.runEden(self.LEMS_filename, verbose=True)
         os.chdir(self.path)
 
     def run_network_with_Neuron(self):
-        os.chdir(os.path.realpath('../NMLfiles'))
+        os.chdir('/home/jovyan/work/ClassNora')
         self.results_Neuron = pynml.run_lems_with_jneuroml_neuron(self.LEMS_filename, verbose=True, nogui=True)
         os.chdir(self.path)
 
@@ -344,14 +347,15 @@ class SingleNeuronFit:
         plt.show()
 
     def change_condDensity(self, value, channel):
-        os.chdir(os.path.realpath('../NMLfiles')
+        os.chdir('/home/jovyan/work/ClassNora')
         # na_s_soma, kdr_soma, k_soma, cal_soma, cah_dend, kca_dend, h_dend, na_axon, k_axon, leak
         leak_channels = ["leak_soma", "leak_axon", "leak_dend_prox", "leak_dend_dist"]
         if channel == "leak":
             for i in range(len(leak_channels)):
-                 change_condDensity(self, value, leak_channels[i])
+                 self.change_condDensity(value, leak_channels[i])
             return
-                 
+        
+        
         doc = nmlparse("C" + self.neuron_name[2:] + "_scaled_resample_5.cell.nml")
         channel_densities = doc.cells[0].biophysical_properties.membrane_properties.channel_densities
         nr_of_channels = len(channel_densities)
@@ -363,7 +367,7 @@ class SingleNeuronFit:
             if i == nr_of_channels:
                 print("channel not found; value was not changed")
         writers.NeuroMLWriter.write(doc, "C" + self.neuron_name[2:] + "_scaled_resample_5.cell.nml")
-        os.chdir(default_path)
+        os.chdir(self.path)
 
     def rerun_model(self):
         self.create_NML_network()
@@ -436,24 +440,19 @@ class NeuronOptimizee(Optimizee):
 
         seed = np.uint32(seed)
         self.random_state = np.random.RandomState(seed=seed)
-
+        
     def init_(self, trajectory):
         return
 
     def simulate_(self):
-        neuron_names_selection = ['20160802D'] #for now only works for one cell at a time!
-        self.cellData = {}
-
-        for neuron_name in neuron_names_selection:
-            self.cellData[neuron_name] = SingleNeuronFit(neuron_name, 
-                                                         self.na_s_soma, self.kdr_soma, self.k_soma, self.cal_soma, self.cah_dend,
+        self.neuron_name = '20160802D'
+        self.snf = SingleNeuronFit(self.neuron_name, self.na_s_soma, self.kdr_soma, self.k_soma, self.cal_soma, self.cah_dend,
                                                          self.kca_dend, self.h_dend, self.na_axon, self.k_axon, self.leak,
                                                          path=self.path)
         return self.get_fitness()
 
     def get_fitness(self):
-        #return np.random.randint(5, size=1)
-        return self.cellData[neuron_name].fitness
+        return self.snf.fitness
     
     def simulate(self, trajectory):
 
@@ -477,6 +476,7 @@ class NeuronOptimizee(Optimizee):
         plt.rcParams['axes.labelsize'] = 14
 
         self.path = os.getcwd()
+        print(self.path)
         self.simulate_()
 
         print(self.get_fitness())
