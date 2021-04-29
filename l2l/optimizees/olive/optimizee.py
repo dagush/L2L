@@ -447,8 +447,7 @@ class NeuronOptimizee(Optimizee):
     def simulate_(self):
         self.neuron_name = '20160802D'
         self.snf = SingleNeuronFit(self.neuron_name, self.na_s_soma, self.kdr_soma, self.k_soma, self.cal_soma, self.cah_dend,
-                                                         self.kca_dend, self.h_dend, self.na_axon, self.k_axon, self.leak,
-                                                         path=self.path)
+                                                         self.kca_dend, self.h_dend, self.na_axon, self.k_axon, self.leak)
         return self.get_fitness()
 
     def get_fitness(self):
@@ -475,8 +474,6 @@ class NeuronOptimizee(Optimizee):
         plt.rcParams['ytick.labelsize'] = 12
         plt.rcParams['axes.labelsize'] = 14
 
-        self.path = os.getcwd()
-        print(self.path)
         self.simulate_()
 
         print(self.get_fitness())
