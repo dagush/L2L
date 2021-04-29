@@ -38,7 +38,7 @@ class SingleNeuronFit:
     def __init__(self, neuron_name, 
                  na_s_soma = 30, kdr_soma = 30, k_soma = 15, cal_soma = 20, cah_dend = 10, 
                  kca_dend = 35, h_dend = 25, na_axon = 200, k_axon = 200, leak = 1/3e-2,
-                 task=1, simulator="Eden", path="/home/jovyan/work/ClassNora", targets = [20, 80, 0, -55]):
+                 task=1, simulator="Eden", path="/home/jovyan/work/ClassNora/L2L/l2l/optimizees/olive", targets = [20, 80, 0, -55]):
         
         random.seed(12345)
         
