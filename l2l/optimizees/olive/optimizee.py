@@ -38,23 +38,23 @@ class SingleNeuronFit:
     def __init__(self, neuron_name, 
                  na_s_soma = 30, kdr_soma = 30, k_soma = 15, cal_soma = 20, cah_dend = 10, 
                  kca_dend = 35, h_dend = 25, na_axon = 200, k_axon = 200, leak = 1/3e-2,
-                 task=1, simulator="Eden", path="", targets = [20, 80, 0, -55]):
+                 task=1, simulator="Eden", path="/home/jovyan/work/ClassNora", targets = [20, 80, 0, -55]):
         
         random.seed(12345)
         
         # inputs
         self.neuron_name = neuron_name
-        self.path = os.getcwd()
+        self.wd_path = os.getcwd()
+        self.path = path
         self.task = task
         self.simulator = simulator
         self.targets = targets
         
         if self.task == 2:
             self.long_pulse_blockIds = []
-            os.chdir(self.path)
+            os.chdir(self.wd_path)
             rawdata_path = os.path.realpath("../dataNora")
             self.experimental_data = SingleNeuron(self.neuron_name, path = rawdata_path)
-        #os.chdir(self.path)
         
         #parameters and variables experimental part
         self.experimental_temp = 26
@@ -172,7 +172,7 @@ class SingleNeuronFit:
         self.pulse_heights = pulse_heights
 
     def create_NML_network(self):
-        os.chdir('/home/jovyan/work/ClassNora')
+        os.chdir(self.path)
 
         # Create NeuroML file
         nml_doc = nml.NeuroMLDocument(id="net")
@@ -240,17 +240,17 @@ class SingleNeuronFit:
         self.LEMS_filename = "%s_simulation.xml" % sim_id
         ls.save_to_file(file_name=self.LEMS_filename)
 
-        os.chdir(self.path)
+        os.chdir(self.wd_path)
 
     def run_network_with_Eden(self):
-        os.chdir('/home/jovyan/work/ClassNora')
-        self.results_Eden = eden_tools.runEden(self.LEMS_filename, verbose=True)
         os.chdir(self.path)
+        self.results_Eden = eden_tools.runEden(self.LEMS_filename, verbose=True)
+        os.chdir(self.wd_path)
 
     def run_network_with_Neuron(self):
-        os.chdir('/home/jovyan/work/ClassNora')
-        self.results_Neuron = pynml.run_lems_with_jneuroml_neuron(self.LEMS_filename, verbose=True, nogui=True)
         os.chdir(self.path)
+        self.results_Neuron = pynml.run_lems_with_jneuroml_neuron(self.LEMS_filename, verbose=True, nogui=True)
+        os.chdir(self.wd_path)
 
     def split_model_data_in_blocks(self):
         length = int(self.t_end / self.dt)
@@ -347,7 +347,7 @@ class SingleNeuronFit:
         plt.show()
 
     def change_condDensity(self, value, channel):
-        os.chdir('/home/jovyan/work/ClassNora')
+        os.chdir(self.path)
         # na_s_soma, kdr_soma, k_soma, cal_soma, cah_dend, kca_dend, h_dend, na_axon, k_axon, leak
         leak_channels = ["leak_soma", "leak_axon", "leak_dend_prox", "leak_dend_dist"]
         if channel == "leak":
@@ -367,7 +367,7 @@ class SingleNeuronFit:
             if i == nr_of_channels:
                 print("channel not found; value was not changed")
         writers.NeuroMLWriter.write(doc, "C" + self.neuron_name[2:] + "_scaled_resample_5.cell.nml")
-        os.chdir(self.path)
+        os.chdir(self.wd_path)
 
     def rerun_model(self):
         self.create_NML_network()
