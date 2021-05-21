@@ -542,7 +542,7 @@ def main():
     #fake_traj.individual = sdict(optimizee.create_individual())
     #testing_error = optimizee.simulate(fake_traj)
     #logger.info("Testing error is %s", testing_error)
-    
+
     optimizee = NeuronOptimizee(traj, seed = 12345)
     optimizer_parameters = GeneticAlgorithmParameters(seed = 12345,
                                                      popsize = 10,
@@ -561,8 +561,8 @@ def main():
                               optimizer_parameters=optimizer_parameters)
     experiment.end_experiment(optimizer)
     
-    parameters_dict[i] = traj._results['$set.$.individual']
-    fitness_dict[i] = traj._results['$set.$.fitness']
+    #parameters_dict[i] = traj._results['$set.$.individual']
+    #fitness_dict[i] = traj._results['$set.$.fitness']
 
 if __name__ == "__main__":
     main()
