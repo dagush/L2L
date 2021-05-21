@@ -537,12 +537,32 @@ def main():
                 fe))
     paths = experiment.paths
 
-    fake_traj = DummyTrajectory()
-    optimizee = NeuronOptimizee(fake_traj, 0)
-    fake_traj.individual = sdict(optimizee.create_individual())
-    testing_error = optimizee.simulate(fake_traj)
-    logger.info("Testing error is %s", testing_error)
-
+    #fake_traj = DummyTrajectory()
+    #optimizee = NeuronOptimizee(fake_traj, 0)
+    #fake_traj.individual = sdict(optimizee.create_individual())
+    #testing_error = optimizee.simulate(fake_traj)
+    #logger.info("Testing error is %s", testing_error)
+    
+    optimizee = NeuronOptimizee(traj, seed = 12345)
+    optimizer_parameters = GeneticAlgorithmParameters(seed = 12345,
+                                                     popsize = 10,
+                                                     CXPB = 0.5,
+                                                     MUTPB = 0.2,
+                                                     NGEN = 3,
+                                                     indpb = 0.1,
+                                                     tournsize = 3,
+                                                     matepar = 0.2,
+                                                     mutpar = 2)
+    
+    optimizer = GeneticAlgorithmOptimizer(traj, optimizee.create_individual, (1.0,),
+                          optimizer_parameters)
+    experiment.run_experiment(optimizee=optimizee,
+                              optimizer=optimizer,
+                              optimizer_parameters=optimizer_parameters)
+    experiment.end_experiment(optimizer)
+    
+    parameters_dict[i] = traj._results['$set.$.individual']
+    fitness_dict[i] = traj._results['$set.$.fitness']
 
 if __name__ == "__main__":
     main()
