@@ -73,7 +73,7 @@ class SingleNeuronFit:
         self.dt = 0.05
         self.model_init_time = 5000 #ms
         if self.task == 1:
-            self.run_time = 5000 #ms
+            self.run_time = 15000 #ms
         self.ind_break = int(self.model_init_time/self.dt)+1
         self.LEMS_filename = " "
         self.results_Eden = {}
@@ -391,6 +391,10 @@ class SingleNeuronFit:
             top_peaks, _ = find_peaks(data, prominence = 8)
             bottom_peaks, _ = find_peaks([-data[i] for i in range(len(data))])
             
+            if top_peaks.size == 0:
+                self.fitness = -100
+                return
+            
             max_val = np.mean([data[i] for i in top_peaks])
             min_val = np.mean([data[i] for i in bottom_peaks])
             mean_val = (max_val + min_val)/2
@@ -444,12 +448,6 @@ class NeuronOptimizee(Optimizee):
     def init_(self, trajectory):
         return
 
-    def simulate_(self):
-        self.neuron_name = '20160802D'
-        self.snf = SingleNeuronFit(self.neuron_name, self.na_s_soma, self.kdr_soma, self.k_soma, self.cal_soma, self.cah_dend,
-                                                         self.kca_dend, self.h_dend, self.na_axon, self.k_axon, self.leak)
-        return self.get_fitness()
-
     def get_fitness(self):
         return self.snf.fitness
     
@@ -474,10 +472,13 @@ class NeuronOptimizee(Optimizee):
         plt.rcParams['ytick.labelsize'] = 12
         plt.rcParams['axes.labelsize'] = 14
 
-        self.simulate_()
-
-        print(self.get_fitness())
-        return (self.get_fitness())
+        self.neuron_name = '20160802D'
+        self.snf = SingleNeuronFit(self.neuron_name, self.na_s_soma, self.kdr_soma, self.k_soma, self.cal_soma, self.cah_dend,
+                                                         self.kca_dend, self.h_dend, self.na_axon, self.k_axon, self.leak)
+        
+        print((self.get_fitness(),))
+              
+        return (self.get_fitness(),)
 
     # Returned by the prev fading mem test. return readout_delay, testing_perf_mean
 
