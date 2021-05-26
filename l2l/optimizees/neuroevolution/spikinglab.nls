@@ -1,0 +1,801 @@
+;; SpikingLab: Modelling Spiking Neural Networks with STDP learning
+
+;; Author: Cristian Jimenez Romero - The Open University - 2015
+;; Publication: SpikingLab: modelling agents controlled by Spiking Neural Networks in Netlogo
+;; C Jimenez-Romero, J Johnson
+;; Neural Computing and Applications 28 (1), 755-764
+
+breed [neurontypes neurontype]
+breed [inputneurons inputneuron]
+breed [normalneurons normalneuron]
+
+directed-link-breed [normal-synapses normal-synapse]
+directed-link-breed [input-synapses input-synapse]
+
+globals [
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;SNN Module globals;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  
+  neuron_state_open;; describe state machine of the neuron
+  neuron_state_firing;; describe state machine of the neuron
+  neuron_state_refractory;; describe state machine of the neuron
+  excitatory_synapse
+  inhibitory_synapse
+  system_iter_unit ;;time steps of each iteration expressed in milliseconds
+  plot-list
+  plot-list2
+  PulseHistoryBuffSize ;;Size of pulse history buffer
+  input_value_empty ;;Indicate that there is no input value
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;Demo globals;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  pspikefrequency ;;Number of spikes emitted by an input neuron in response to one stimulus
+  error_free_counter ;;Number of iterations since the insect collided with a noxious stimulus
+  required_error_free_iterations ;;Number of error-free iterations necessary to stop training
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+]
+
+neurontypes-own [
+
+  neurontypeid
+  ;;;;;;;;;;Neuron Dynamics;;;;;;;;;;;
+  restingpotential
+  firethreshold
+  decayrate ;Decay rate constant
+  relrefractorypotential ;Refractory potential
+  intervrefractoryperiod ;Duration of absolute-refractory period
+  minmembranepotential ;lowest boundary for membrane potential
+  ;;;;;;;Learning Parameters;;;;;;;;;
+  pos_hebb_weight ;;Weight to increase the efficacy of synapses
+  pos_time_window ;; Positive learning window
+  neg_hebb_weight ;;Weight to decrease the efficacy of synapses
+  neg_time_window ;; negative learning window
+  max_synaptic_weight ;;Maximum synaptic weight
+  min_synaptic_weight ;;Minimum synaptic weight
+  pos_syn_change_interval ;;ranges of pre–to–post synaptic interspike intervals over which synaptic change occur.
+  neg_syn_change_interval
+
+]
+
+
+normalneurons-own [
+
+  nlayernum
+  nneuronid
+  nneuronstate
+  nrestingpotential
+  nfirethreshold
+  nmembranepotential
+  ndecayrate
+  nrelrefractorypotential
+  nintervrefractoryperiod
+  nrefractorycounter
+  naxondelay
+  nsynapsesarray
+  nnumofsynapses
+  nlast-firing-time
+  nincomingspikes
+  nlastspikeinput
+  nneuronlabel
+  nminmembranepotential
+  ;;;;;;;;;;;;;;;;Learning Parameters;;;;;;;;;;;;;;;;;
+  npos_hebb_weight ;;Weight to increase the efficacy of synapses
+  npos_time_window ;; Positive learning window
+  nneg_hebb_weight ;;Weight to decrease the efficacy of synapses
+  nneg_time_window ;; negative learning window
+  nmax_synaptic_weight ;;Maximum synaptic weight
+  nmin_synaptic_weight ;;Minimum synaptic weight
+  npos_syn_change_interval ;;ranges of pre–to–post synaptic interspike intervals over which synaptic change occur.
+  nneg_syn_change_interval
+
+]
+
+
+normal-synapses-own [
+
+  presynneuronlabel
+  possynneuronlabel
+  presynneuronid
+  possynneuronid
+  synapseefficacy
+  exc_or_inh
+  synapsedelay
+  joblist
+  learningon?
+
+]
+
+
+inputneurons-own [
+
+   layernum
+   neuronid
+   neuronstate
+   pulsecounter ;;Count the number of sent pulses
+   interspikecounter ;;Count the time between pulses
+   numberofspikes ;;Number of spikes to send
+   postsynneuron
+   encodedvalue
+   isynapseefficacy ;;In most cases should be large enough to activate possynn with a single spike
+   neuronlabel
+
+]
+
+
+to initialize-spikinglab-globals
+ 
+  set system_iter_unit 1 ;; each simulation iteration represents 1 time unit
+  set neuron_state_open 1 ;;State machine idle
+  set neuron_state_firing 2 ;;State machine firing
+  set neuron_state_refractory 3 ;;State machine refractory
+  set excitatory_synapse 1
+  set inhibitory_synapse 2
+  set plot-list[] ;;List for spike history
+  set plot-list2[] ;;List for spike history
+  set PulseHistoryBuffSize 30
+  set input_value_empty -1 
+  
+end
+
+;;;
+;;; Create a neuron type
+;;; Parameters: Type-identifier, resting potential, firing threshold, decay rate, refractory potential, duration of refractory period, lowest boundary for membrane potential
+to setup-neurontype [#pneurontypeid #prestpot #pthreshold #pdecayr #prefractpot #pintrefrectp #minmembranepotential]
+
+  create-neurontypes 1
+  [
+     set shape "square"
+     set neurontypeid #pneurontypeid
+     set restingpotential #prestpot
+     set firethreshold #pthreshold
+     set decayrate #pdecayr
+     set relrefractorypotential #prefractpot
+     set intervrefractoryperiod #pintrefrectp
+     set minmembranepotential #minmembranepotential
+     ht
+  ]
+
+end
+
+
+;;;
+;;; Set learning parameters for neuron type pneurontypeid
+;;;
+
+to set-neurontype-learning-params [ #pneurontypeid #ppos_hebb_weight #ppos_time_window #pneg_hebb_weight #pneg_time_window #pmax_synaptic_weight
+                                    #pmin_synaptic_weight #ppos_syn_change_interval #pneg_syn_change_interval]
+
+  ask neurontypes with [neurontypeid = #pneurontypeid]
+  [
+    set pos_hebb_weight #ppos_hebb_weight
+    set pos_time_window #ppos_time_window
+    set neg_hebb_weight #pneg_hebb_weight
+    set neg_time_window #pneg_time_window
+    set max_synaptic_weight #pmax_synaptic_weight
+    set min_synaptic_weight #pmin_synaptic_weight
+    set pos_syn_change_interval #ppos_syn_change_interval
+    set neg_syn_change_interval #pneg_syn_change_interval
+  ]
+
+end
+
+;;;
+;;; Declare an existing neuron "pneuronid" as neuron-type "pneurontypeid"
+;;;
+to set-neuron-to-neurontype [ #pneurontypeid #pneuronid ] ;Call by observer
+
+
+    ask neurontypes with [neurontypeid = #pneurontypeid]
+    [
+      ask normalneuron #pneuronid
+      [
+        set nrestingpotential [restingpotential] of myself
+        set nmembranepotential [restingpotential] of myself
+        set nfirethreshold [firethreshold] of myself
+        set ndecayrate [decayrate] of myself
+        set nrelrefractorypotential [relrefractorypotential] of myself
+        set nintervrefractoryperiod [intervrefractoryperiod] of myself
+        set nminmembranepotential [minmembranepotential] of myself
+
+        ;;;;;;;;;;;;;;;;Learning Parameters;;;;;;;;;;;;;;;;;
+        set npos_hebb_weight [pos_hebb_weight] of myself
+        set npos_time_window [pos_time_window] of myself
+        set nneg_hebb_weight [neg_hebb_weight] of myself
+        set nneg_time_window [neg_time_window] of myself
+        set nmax_synaptic_weight [max_synaptic_weight] of myself
+        set nmin_synaptic_weight [min_synaptic_weight] of myself
+        set npos_syn_change_interval [pos_syn_change_interval] of myself
+        set nneg_syn_change_interval [neg_syn_change_interval] of myself
+      ]
+     ]
+
+end
+
+
+;;;
+;;; Get intern identifier of the input-neuron with label = #pneuronlabel
+;;;
+to-report get-input-neuronid-from-label [#pneuronlabel]
+
+  let returned_id nobody
+  ask one-of inputneurons with [neuronlabel = #pneuronlabel][set returned_id neuronid]
+  report returned_id
+
+end
+
+;;;
+;;; Get intern identifier of the normal-neuron with label = #pneuronlabel
+;;;
+to-report get-neuronid-from-label [#pneuronlabel]
+
+  let returned_id nobody
+  ask one-of normalneurons with [nneuronlabel = #pneuronlabel][set returned_id nneuronid]
+  report returned_id
+
+end
+
+
+;;;
+;;; Create a new synapse between pre-synaptic neuron: #ppresynneuronlabel and post-synaptic neuron: #ppossynneuronlabel
+;;;
+to setup-synapse [#ppresynneuronlabel #ppossynneuronlabel #psynapseefficacy #pexc_or_inh #psyndelay #plearningon?]
+
+   let presynneuid get-neuronid-from-label #ppresynneuronlabel
+   let possynneuid get-neuronid-from-label #ppossynneuronlabel
+
+   let postsynneu normalneuron possynneuid
+   ask normalneuron presynneuid [
+        create-normal-synapse-to postsynneu [
+           set presynneuronlabel #ppresynneuronlabel
+           set possynneuronlabel #ppossynneuronlabel
+           set presynneuronid presynneuid
+           set possynneuronid possynneuid
+           set synapseefficacy #psynapseefficacy
+           set exc_or_inh #pexc_or_inh
+           set synapsedelay #psyndelay
+           set joblist []
+           set learningon? #plearningon?
+           ifelse (#pexc_or_inh = inhibitory_synapse)
+           [
+             set color red
+           ]
+           [
+             set color grey
+           ]
+        ]
+     ]
+
+end
+
+
+;;;
+;;; Process incoming pulse from input neuron
+;;;
+to receive-input-neuron-pulse [ #psnefficacy #pexcinh ];;called by Neuron
+
+  if ( nneuronstate != neuron_state_refractory )
+  [
+      ;;Adjust membrane potential:
+      ifelse ( #pexcinh = excitatory_synapse )
+      [
+          set nmembranepotential nmembranepotential + #psnefficacy  ;;increase membrane potential
+      ]
+      [
+          set nmembranepotential nmembranepotential - #psnefficacy ;;decrease membrane potential
+          if (nmembranepotential < nminmembranepotential) ;; Floor for the membrane potential in case of extreme inhibition
+          [
+             set nmembranepotential nminmembranepotential
+          ]
+      ]
+  ]
+  set nlastspikeinput ticks
+
+end
+
+
+;;;
+;;; Neuron pstneuronid# processes incoming pulse from neuron #prneuronid
+;;;
+to receive-pulse [ #prneuronid #snefficacy #excinh #plearningon? ];;called by neuron
+
+  if ( nneuronstate != neuron_state_refractory )
+  [
+      ;;Perturb membrane potential:
+      ifelse ( #excinh = excitatory_synapse )
+      [
+          set nmembranepotential nmembranepotential + (#snefficacy * epsp-kernel) ;;increase membrane potential
+      ]
+      [
+          set nmembranepotential nmembranepotential - (#snefficacy * ipsp-kernel) ;;decrease membrane potential
+          if (nmembranepotential < nminmembranepotential) ;; Floor for the membrane potential in case of extreme inhibition
+          [
+             set nmembranepotential nminmembranepotential
+          ]
+      ]
+  ]
+  ;;Remember last input spike:
+  set nlastspikeinput ticks
+  ;; If plasticity is activated then store pulse info for further processing and apply STDP
+  if (#plearningon? and istrainingmode?)
+  [
+     ;;Don't let incoming-pulses history-buffer grow beyond limits (delete oldest spike):
+     check-pulse-history-buffer
+     ;;Create list of parameters and populate it:
+     let pulseinflist[]
+     set pulseinflist lput #prneuronid pulseinflist ;;Add Presynaptic neuron Id
+     set pulseinflist lput #snefficacy pulseinflist ;;Add Synaptic efficacy
+     set pulseinflist lput #excinh pulseinflist ;;Add excitatory or inhibitory info.
+     set pulseinflist lput ticks pulseinflist ;;Add arriving time
+     set pulseinflist lput false pulseinflist ;;Indicate if pulse has been processed as an EPSP following a Postsynaptic spike ( Post -> Pre, negative hebbian)
+     ;;Add list of parameters to list of incoming pulses:
+     set nincomingspikes lput pulseinflist nincomingspikes
+     ;;Apply STDP learning rule:
+     apply-stdp-learning-rule
+  ]
+
+end
+
+
+;;;
+;;; Neuron prepares to fire
+;;;
+to prepare-pulse-firing ;;Called by Neurons
+
+   ;;Remember last firing time
+   set nlast-firing-time ticks
+   ;;Apply learning rule and after that empty incoming-pulses history:
+   apply-stdp-learning-rule
+   empty-pulse-history-buffer
+   ;;transmit Pulse to postsynaptic neurons:
+   propagate-pulses
+   ;;Set State to refractory
+   set nneuronstate neuron_state_refractory
+   ;;initialize counter of refractory period in number of iterations
+   set nrefractorycounter nintervrefractoryperiod
+
+end
+
+
+;;;
+;;; Kernel for inhibitory post-synaptic potential
+;;;
+to-report ipsp-kernel ;;Called by Neurons
+
+  report 1
+
+end
+
+
+;;;
+;;; Kernel for excitatory post-synaptic potential
+;;;
+to-report epsp-kernel ;;Called by Neurons
+
+  report 1
+
+end
+
+
+;;;
+;;; Kernel for membrane decay towards resting potential (If current membrane pot. > Resting pot.)
+;;;
+to-report negative-decay-kernel ;;Called by Neurons
+
+  report  abs(nrestingpotential - nmembranepotential) * ndecayrate
+
+end
+
+
+;;;
+;;; Kernel for membrane decay towards resting potential (If current membrane pot. < Resting pot.)
+;;;
+to-report positive-decay-kernel ;;Called by Neurons
+
+  report abs(nrestingpotential - nmembranepotential) * ndecayrate
+
+end
+
+
+;;;
+;;; Bring membrane potential towards its resting state
+;;;
+to decay ;;Called by Neurons
+    ;;Move membrane potential towards resting potential:
+    ifelse (nmembranepotential > nrestingpotential )
+    [
+        let expdecay negative-decay-kernel ;
+        ifelse ((nmembranepotential - expdecay) < nrestingpotential)
+        [
+          set nmembranepotential nrestingpotential
+        ]
+        [
+          set nmembranepotential nmembranepotential - expdecay
+        ]
+    ]
+    [
+      let expdecay positive-decay-kernel ;
+      ifelse ((nmembranepotential + expdecay) > nrestingpotential)
+      [
+        set nmembranepotential nrestingpotential
+      ]
+      [
+        set nmembranepotential nmembranepotential + expdecay
+      ]
+    ]
+
+end
+
+
+;;;
+;;; Process neuron dynamics according to its machine state
+;;;
+to do-neuron-dynamics ;;Called by Neurons
+
+  ifelse ( nneuronstate = neuron_state_open )
+  [
+    if (nmembranepotential != nrestingpotential )
+    [
+      ;;Check if membrane potential reached the firing threshold
+      ifelse( nmembranepotential >= nfirethreshold )
+      [
+        prepare-pulse-firing
+        set color red
+      ]
+      [
+         ;;Move membrane potential towards resting potential:
+         decay
+      ]
+    ]
+  ]
+  [
+    ;;Not idle and not firing, then refractory:
+    set color pink ;;Restore normal colour
+    ;;Decrease timer of absolute refractory period:
+    set nrefractorycounter nrefractorycounter - system_iter_unit
+    ;;Set membrane potential with refractory potential:
+    set nmembranepotential nrelrefractorypotential
+    if ( nrefractorycounter <= 0) ;;End of absolute refractory period?
+    [
+      ;;Set neuron in open state:
+      set nneuronstate neuron_state_open
+    ]
+  ]
+  ;;Continue with Axonal dynamics independently of the neuron state:
+  do-synaptic-dynamics
+
+end
+
+
+;;;
+;;; Delete history of incoming spikes
+;;;
+to empty-pulse-history-buffer ;;Called by neurons
+
+  set nincomingspikes[]
+
+end
+
+
+;;;
+;;; Apply the Spike Timing Dependent Plasticity rule
+;;;
+to apply-stdp-learning-rule ;;Call by neurons
+
+  ;Apply rule: Ap.exp(dt/Tp); if dt < 0; dt = prespt - postspt
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  let currspikeinfo[]
+  let itemcount 0
+  let deltaweight 0
+
+  while [itemcount < ( length nincomingspikes ) ]
+  [
+     set currspikeinfo ( item itemcount nincomingspikes ) ;;Get spike info:   prneuronid[0], snefficacy[1], excinh[2], arrivaltime[3], processedBynegHebb[4]
+
+     ifelse ( item 2 currspikeinfo ) = excitatory_synapse ;;Is the spike coming from an excitatory synapsis?
+     [
+       let deltaspike ( item 3 currspikeinfo ) - nlast-firing-time
+       if ( deltaspike >= nneg_time_window and deltaspike <= npos_time_window) ;;Is spike within learning window?
+       [
+           ;;Calculate learning factor:
+          ifelse ( deltaspike <= 0 ) ;;Increase weight
+          [
+            set deltaweight  npos_hebb_weight * exp(deltaspike / npos_syn_change_interval )
+            ask normal-synapse  ( item 0 currspikeinfo ) nneuronid  [update-synapse-efficacy deltaweight [nmax_synaptic_weight] of myself [nmin_synaptic_weight] of myself]
+          ]
+          [
+            if (( item 4 currspikeinfo ) = false) ;;if spike has not been processed then compute Hebb rule:
+            [
+              set deltaweight (- nneg_hebb_weight * exp(- deltaspike / nneg_syn_change_interval )) ;;Turn positive delta into a negative weight
+              set currspikeinfo replace-item 4 currspikeinfo true ;Indicate that this pulse has already been processed as a EPSP after Postsyn neuron has fired (negative hebbian)
+              set nincomingspikes replace-item itemcount nincomingspikes currspikeinfo
+              ask normal-synapse  ( item 0 currspikeinfo ) nneuronid [update-synapse-efficacy deltaweight [nmax_synaptic_weight] of myself [nmin_synaptic_weight] of myself]
+            ]
+          ]
+       ]
+     ]
+     [
+       ;;Inhibitory Synapses: Plasticity in inhibitory synapses not implemented yet
+
+     ]
+     set itemcount itemcount + 1
+  ]
+
+end
+
+
+;;;
+;;; Don't store more pulses than the specified by PulseHistoryBuffSize
+;;;
+to check-pulse-history-buffer ;;Call by neurons
+
+  if( length nincomingspikes > PulseHistoryBuffSize )
+  [
+    ;; Remove oldest pulse in the list
+    set nincomingspikes remove-item 0 nincomingspikes
+  ]
+
+end
+
+
+;;;
+;;; Propagate pulse to all post-synaptic neurons
+;;;
+to propagate-pulses ;;Call by neurons
+
+  ;; Insert a new pulse in all synapses having the current neuron as presynaptic
+  ask my-out-normal-synapses
+  [
+    add-pulse-job
+  ]
+
+end
+
+
+;;;
+;;; Process synaptic dynamics of synapses with pre-synaptic neuron: presynneuronid
+;;;
+to do-synaptic-dynamics ;;Call by neurons
+
+  ;; Process all outgoing synapses with pulses in their job-list
+  ask my-out-normal-synapses with [ length joblist > 0 ]
+  [
+    process-pulses-queue
+  ]
+
+end
+
+
+;;;
+;;; Enqueue pulse in synapse
+;;;
+to add-pulse-job ;;Call by link (synapse)
+
+    ;;Add a new Pulse with its delay time at the end of the outgoing-synapse joblist
+    set joblist lput synapsedelay joblist
+
+end
+
+
+;;;
+;;; Change synaptic weight
+;;;
+to update-synapse-efficacy [ #deltaweight #pmax_synaptic_weight #pmin_synaptic_weight] ;;Call by synapse
+
+  ifelse ( synapseefficacy + #deltaweight ) > #pmax_synaptic_weight
+  [
+    set synapseefficacy #pmax_synaptic_weight
+  ]
+  [
+    ifelse ( synapseefficacy + #deltaweight ) < #pmin_synaptic_weight
+    [
+      set synapseefficacy #pmin_synaptic_weight
+    ]
+    [
+      set synapseefficacy synapseefficacy + #deltaweight
+    ]
+  ]
+
+end
+
+;;;
+;;; For each traveling pulse in synapse check if pulse has already arrived at the post-synaptic neuron
+;;;
+to process-pulses-queue ;;Call by synapse
+
+  set joblist map [ i -> i - 1  ] joblist ;;Decrease all delay counters by 1 time-unit
+
+  foreach filter [i -> i <= 0] joblist ;;Process pulses that reached the postsynaptic neuron
+  [
+       ;;Transmit Pulse to Postsyn Neuron:
+       ask other-end [receive-pulse [presynneuronid] of myself [synapseefficacy] of myself [exc_or_inh] of myself [learningon?] of myself]
+  ]
+  ;;Keep only "traveling" pulses in the list :
+  ;;set joblist filter [? > 0] joblist
+  set joblist filter [i -> i > 0] joblist
+
+end
+
+
+;;;
+;;; Create one input neuron and attach it to neuron with label #ppostsynneuronlabel (input neurons have one connection only)
+;;;
+to setup-input-neuron [#pposx #pposy #label #ppostsynneuronlabel #psynapseefficacy #pcoding #pnumofspikes]
+
+  let postsynneuronid get-neuronid-from-label #ppostsynneuronlabel
+  set-default-shape inputneurons "square"
+  create-inputneurons 1
+  [
+     set layernum 0
+     set neuronid who
+     set neuronstate neuron_state_open
+     set pulsecounter 0
+     set interspikecounter 0
+     set numberofspikes #pnumofspikes
+     set postsynneuron postsynneuronid
+     set encodedvalue input_value_empty
+     set isynapseefficacy #psynapseefficacy
+     setxy #pposx #pposy
+     set color green
+     set label #label
+     set neuronlabel #label
+     setup-input-synapse
+  ]
+
+end
+
+
+;;;
+;;; Process pulses in input neuron
+;;;
+to do-input-neuron-dynamics ;;Called by inputneurons
+
+  if ( pulsecounter > 0 ) ;;process only if input-neuron has something to do
+  [
+    set interspikecounter interspikecounter + 1
+    if (interspikecounter > encodedvalue)
+    [
+    ;;Transmit pulse to Post-synaptic Neuron;
+      ask out-input-synapse-neighbors [receive-input-neuron-pulse [isynapseefficacy] of myself [excitatory_synapse] of myself]
+      set interspikecounter 0
+      set pulsecounter pulsecounter - 1
+    ]
+  ]
+
+end
+
+
+;;;
+;;; Encode input value (integer number) into pulses
+;;;
+to-report set-input-value [#pencodedvalue] ;;Called by inputneurons
+
+  ;;Check if input neuron is ready to receive input
+  let inputready false
+  if ( pulsecounter = 0 )
+  [
+    set encodedvalue #pencodedvalue
+    set pulsecounter numberofspikes ;;Initialize counter with the number of pulses to transmit with the encoded value
+    set interspikecounter 0
+    set inputready true
+  ]
+  report inputready
+end
+
+
+;;;
+;;; Ask input neuron with id = #pneuronid to accept and encode a new input value
+;;;
+to feed-input-neuron [#pneuronid #pencodedvalue];;Called by observer
+
+   ask inputneuron #pneuronid
+   [
+     let inputready set-input-value #pencodedvalue
+   ]
+
+end
+
+
+;;;
+;;; Ask input neuron with label = #pneuronlabel to accept and encode a new input value
+;;;
+to feed-input-neuron_by_label [#pneuronlabel #pencodedvalue];;Called by observer
+
+   ask one-of inputneurons with [ neuronlabel = #pneuronlabel ]
+   [
+     let inputready set-input-value #pencodedvalue
+   ]
+
+end
+
+
+;;;
+;;; Create link to represent synapse from input neuron to post-synaptic neuron: postsynneuron
+;;;
+to setup-input-synapse ;;Call from inputneurons
+
+   let psnneuron postsynneuron
+   let postsynneu one-of (normalneurons with [nneuronid = psnneuron])
+   create-input-synapse-to postsynneu
+
+end
+
+
+;;;
+;;; Create and initialize neuron
+;;;
+to setup-normal-neuron [#playernum #pposx #pposy #label #pneurontypeid]
+
+  set-default-shape normalneurons "circle"
+  let returned_id nobody
+  create-normalneurons 1
+  [
+     set nlayernum #playernum
+     set nneuronid who
+     set nneuronstate neuron_state_open
+     set nrefractorycounter 0
+     set nincomingspikes[]
+     set nnumofsynapses 0
+     set nlastspikeinput 0
+     setxy #pposx #pposy
+     set color pink
+     set label #label
+     set nneuronlabel #label
+     set returned_id nneuronid
+  ]
+  set-neuron-to-neurontype #pneurontypeid returned_id
+
+end
+
+
+;;;
+;;; Process neural dynamics
+;;;
+to do-network-dynamics
+
+ ask inputneurons [ do-input-neuron-dynamics ] ;Process input neurons in random order
+ ask normalneurons [do-neuron-dynamics] ;Process normal neurons in random order
+
+end
+
+
+;;;
+;;; Show information about neuron with id: #srcneuron
+;;;
+to show-neuron-info [#srcneuron] ;;Called by observer
+
+   ;set plot-list lput ( [nmembranepotential] of one-of normalneurons with [nneuronid = neuronid_monitor1] ) plot-list
+   ask normalneurons with [nneuronid = #srcneuron]
+   [
+      print ""
+      write "Neuron Id:" write nneuronid print ""
+      write "Layer " write nlayernum print ""
+      write "Membrane potential: " write nmembranepotential print ""
+      write "Spike threshold: " write nfirethreshold print ""
+      write "Resting potential: " write nrestingpotential print ""
+      write "Refractory potential: " write nrelrefractorypotential print ""
+      write "Last input-pulse received at:" write nlastspikeinput print ""
+      write "Last spike fired at: " write nlast-firing-time print ""
+      write "Current state: " write (ifelse-value ( nneuronstate = neuron_state_open ) ["idle"] ["refractory"] ) print ""
+      print ""
+   ]
+
+end
+
+
+;;;
+;;; Show information about synapse with pre-synaptic neuron: #srcneuron and post-synaptic neuron: #dstneuron
+;;;
+to show-synapse-info-from-to [#srcneuron #dstneuron] ;;Called by observer
+
+   ask normal-synapses with [presynneuronid = #srcneuron and possynneuronid = #dstneuron]
+   [
+      print "Synapse from:"
+      write "Neuron " write #srcneuron write " to neuron " write #dstneuron print ""
+      write "Weight: " write synapseefficacy print ""
+      write "Delay: " write synapsedelay write "iteration(s)" print ""
+      write "Excitatory or Inhibitory: "
+      write (ifelse-value ( exc_or_inh = excitatory_synapse ) ["Excitatory"] ["Inhibitory"] )
+      print ""
+   ]
+
+end
