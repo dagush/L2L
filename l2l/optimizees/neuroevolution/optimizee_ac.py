@@ -10,7 +10,7 @@ from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 
 AntColonyOptimizeeParameters = namedtuple(
-    'AntColonyOptimizeeParameters', ['path', 'seed', 'n_generation',
+    'AntColonyOptimizeeParameters', ['path', 'seed', 'save_n_generation',
                                      'run_headless'])
 
 
@@ -20,7 +20,7 @@ class AntColonyOptimizee(Optimizee):
         self.param_path = parameters.path
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
-        self.n_generation = parameters.n_generation
+        self.save_n_generation = parameters.save_n_generation
         self.rng = np.random.default_rng(parameters.seed)
         self.dir_path = ''
         self.fp = pathlib.Path(__file__).parent.absolute()
@@ -94,7 +94,7 @@ class AntColonyOptimizee(Optimizee):
         shutil.copyfile(model, os.path.join(self.dir_path, model_name))
         # call netlogo
         subdir_path = os.path.join(self.dir_path, model_name)
-        python_file = os.path.join(self.fp, 'run_model.py')
+        python_file = os.path.join(self.fp, self.config['pynetlogo_model'])
         print(python_file)
         try:
             if self.is_headless:
@@ -126,7 +126,7 @@ class AntColonyOptimizee(Optimizee):
                                                                  self.generation,
                                                                  self.ind_idx))
         # save every n generation the results
-        if self.generation % self.n_generation == 0:
+        if self.generation % self.save_n_generation == 0:
             # create folder if not existent
             result_folder = os.path.join(self.param_path, 'results')
             if not os.path.exists(result_folder):
