@@ -10,7 +10,8 @@ from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
 
 AntColonyOptimizeeParameters = namedtuple(
-    'AntColonyOptimizeeParameters', ['path', 'seed', 'n_generation'])
+    'AntColonyOptimizeeParameters', ['path', 'seed', 'n_generation',
+                                     'run_headless'])
 
 
 class AntColonyOptimizee(Optimizee):
@@ -22,10 +23,11 @@ class AntColonyOptimizee(Optimizee):
         self.n_generation = parameters.n_generation
         self.rng = np.random.default_rng(parameters.seed)
         self.dir_path = ''
-        fp = pathlib.Path(__file__).parent.absolute()
-        print(os.path.join(str(fp), 'config.json'))
+        self.fp = pathlib.Path(__file__).parent.absolute()
+        self.is_headless = parameters.run_headless
+        print(os.path.join(str(self.fp), 'config.json'))
         with open(
-                os.path.join(str(fp), 'config.json')) as jsonfile:
+                os.path.join(str(self.fp), 'config.json')) as jsonfile:
             self.config = json.load(jsonfile)
 
     def create_individual(self):
@@ -63,10 +65,13 @@ class AntColonyOptimizee(Optimizee):
         self.generation = traj.individual.generation
         # create directory individualN
         self.dir_path = os.path.join(self.param_path,
-                                     'individual{}'.format(self.ind_idx))
+                                     'individual')
+        # 'individual{}'.format(self.ind_idx))
+
         try:
             os.mkdir(self.dir_path)
-        except FileExistsError:
+        except FileExistsError as fe:
+            print(fe)
             shutil.rmtree(self.dir_path)
             os.mkdir(self.dir_path)
 
@@ -77,7 +82,7 @@ class AntColonyOptimizee(Optimizee):
         # create the csv file and save it in the created directory
         df = pd.DataFrame(individual)
         df = df.T
-        df.to_csv(os.path.join(self.dir_path, 'individual_config.csv'),
+        df.to_csv(os.path.join(self.dir_path, f'individual_config_{self.ind_idx}.csv'),
                   header=False, index=False)
         # get paths etc. from config file
         model_path = self.config['model_path']
@@ -89,15 +94,28 @@ class AntColonyOptimizee(Optimizee):
         shutil.copyfile(model, os.path.join(self.dir_path, model_name))
         # call netlogo
         subdir_path = os.path.join(self.dir_path, model_name)
+        python_file = os.path.join(self.fp, 'run_model.py')
+        print(python_file)
         try:
-            subprocess.run(['bash', '{}'.format(headless_path),
-                            '--model', '{}'.format(subdir_path),
-                            '--experiment', 'experiment1',
-                            '--table', 'table1.csv'],
-                           check=True)
+            if self.is_headless:
+                subprocess.run(['bash', '{}'.format(headless_path),
+                                '--model', '{}'.format(subdir_path),
+                                '--experiment', 'experiment1',
+                                '--table', 'table1.csv'],
+                               check=True)
+            else:
+                subprocess.run(['python', f'{python_file}',
+                                '--netlogo_home', f'{self.config["netlogo_home"]}',
+                                '--netlogo_version', f'{self.config["netlogo_version"]}',
+                                '--model', f'{subdir_path}',
+                                '--ticks', '10000',
+                                '--individual_no', f'{self.ind_idx}'
+                                ],
+                               check=True)
         except subprocess.CalledProcessError as cpe:
             print('Optimizee process error {}'.format(cpe))
-        file_path = os.path.join(self.dir_path, "individual_result.csv")
+        file_path = os.path.join(
+            self.dir_path, f"individual_result_{self.ind_idx}.csv")
         while not os.path.isfile(file_path):
             time.sleep(5)
         # Read the results file after the netlogo run
