@@ -3,4 +3,6 @@ from .optimizee_ant import NeuroEvolutionOptimizeeAnt, NeuroEvolutionOptimizeeAn
 from .optimizee_ac import AntColonyOptimizee, AntColonyOptimizeeParameters
 
 __all__ = ['NeuroEvolutionOptimizee', 'NeuroEvolutionOptimizeeParameters',
-           'AntColonyOptimizee', 'AntColonyOptimizeeParameters']
+           'AntColonyOptimizee', 'AntColonyOptimizeeParameters',
+           'NeuroEvolutionOptimizeeAnt', 'NeuroEvolutionOptimizeeAntParameters'
+           ]

@@ -1,5 +1,5 @@
 {
-  "model_path": "/Users/snoopy/BA/L2L/l2l/optimizees/neuroevolution",
-  "netlogo_headless_path": "/Applications/NetLogo/netlogo-headless.sh",
-  "model_name": "SpikingLab_Demo_Artificial_Insect_and_STDP_FlexTopology_L2L_FileParameters_27012021.nlogo"
+  "model_path": "L2L/l2l/optimizees/neuroevolution",
+  "netlogo_headless_path": "/opt/netlogo/netlogo-headless.sh",
+  "model_name": "one_ant.nlogo"
 }

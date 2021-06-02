@@ -92,8 +92,10 @@ class NeuroEvolutionOptimizeeAnt(Optimizee):
         headless_path = self.config['netlogo_headless_path']
         # Full model path with name
         model = os.path.join(model_path, model_name)
+        spikinglab = os.path.join(model_path,'spikinglab.nls')
         # copy model to the created directory
         shutil.copyfile(model, os.path.join(self.dir_path, model_name))
+        shutil.copyfile(spikinglab, os.path.join(self.dir_path, 'spikinglab.nls'))
         # call netlogo
         subdir_path = os.path.join(self.dir_path, model_name)
         try:
