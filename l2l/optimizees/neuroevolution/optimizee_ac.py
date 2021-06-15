@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pandas as pd
 import pathlib
+import pickle
 import shutil
 import subprocess
 import time
@@ -11,7 +12,7 @@ from l2l.optimizees.optimizee import Optimizee
 
 AntColonyOptimizeeParameters = namedtuple(
     'AntColonyOptimizeeParameters', ['path', 'seed', 'save_n_generation',
-                                     'run_headless'])
+                                     'run_headless', 'load_parameter'])
 
 
 class AntColonyOptimizee(Optimizee):
@@ -25,6 +26,7 @@ class AntColonyOptimizee(Optimizee):
         self.dir_path = ''
         self.fp = pathlib.Path(__file__).parent.absolute()
         self.is_headless = parameters.run_headless
+        self.load_parameter = parameters.load_parameter
         print(os.path.join(str(self.fp), 'config.json'))
         with open(
                 os.path.join(str(self.fp), 'config.json')) as jsonfile:
@@ -37,18 +39,51 @@ class AntColonyOptimizee(Optimizee):
         Creates the parameters for netlogo.
         The parameter are `weights`, and `delays`.
         """
-        # TODO the creation of the parameters should be more variable
-        #  e.g. as parameters or as a config file
-        # create random weights
-        weights = self.rng.uniform(-20, 20, 220)
-        # create delays
-        delays = self.rng.integers(low=1, high=7, size=220)
+        if self.load_parameter:
+            weights, delays = self.reload_parameter()
+        else:
+            # TODO the creation of the parameters should be more variable
+            #  e.g. as parameters or as a config file
+            # create random weights
+            weights = self.rng.uniform(-20, 20, 250)
+            # create delays
+            delays = self.rng.integers(low=1, high=7, size=250)
         # create individual
         individual = {
             'weights': weights,
             'delays': np.round(delays).astype(int)
         }
         return individual
+
+    def reload_parameter(self):
+        high = 9  # corresponds to pop_size, could be given as parameter
+        randint = self.rng.integers(0, high, 1)[0]
+        if self.load_parameter:
+            traj_path = os.path.join(
+                self.param_path, 'traj_test/simulation/trajectories')
+            # create a function to split strings via "_" and take 2. argument
+            # it also remove the .bin suffix
+            def func(x, idx=2): return int(x[:-4].split('_')[idx])
+            traj_ids = [func(f) for f in os.listdir(
+                traj_path) if f.endswith('.bin')]
+            traj_ids = np.sort(np.unique(traj_ids))
+            # get the previous last generation idx as sometimes in the latest
+            # generation there is a crash and not all individuals are created
+            # if only one generation was iterated take the latest one
+            # if len(traj_ids) > 1:
+            #     last_gen_idx = traj_ids[-2]
+            # else:
+            #     last_gen_idx = traj_ids[-1]
+            last_gen_idx = traj_ids[-1]
+            # last_gen_idx = func(sorted(trajs, key=func)[::-1][0])
+            with open(f'{traj_path}/trajectory_{randint}_{last_gen_idx}.bin',
+                      'rb') as tr:
+                print(
+                    f'loading trajectories {traj_path}/trajectory_{randint}_{last_gen_idx}.bin')
+                trajectory = pickle.load(tr)
+            weights = trajectory.individual.weights
+            delays = trajectory.individual.delays
+        return weights, delays
 
     def simulate(self, traj):
         """
@@ -59,15 +94,15 @@ class AntColonyOptimizee(Optimizee):
         Invokes a run of netlogo, reads in a file outputted (`resultN`) by
         netlogo with the fitness inside.
         """
-        weights = traj.individual.weights
-        delays = traj.individual.delays
         self.ind_idx = traj.individual.ind_idx
         self.generation = traj.individual.generation
+
+        weights = traj.individual.weights
+        delays = traj.individual.delays
+
         # create directory individualN
         self.dir_path = os.path.join(self.param_path,
-                                     'individual')
-        # 'individual{}'.format(self.ind_idx))
-
+                                     f'individual_{self.ind_idx}')
         try:
             os.mkdir(self.dir_path)
         except FileExistsError as fe:
@@ -82,7 +117,7 @@ class AntColonyOptimizee(Optimizee):
         # create the csv file and save it in the created directory
         df = pd.DataFrame(individual)
         df = df.T
-        df.to_csv(os.path.join(self.dir_path, f'individual_config_{self.ind_idx}.csv'),
+        df.to_csv(os.path.join(self.dir_path, f'individual_config.csv'),
                   header=False, index=False)
         # get paths etc. from config file
         model_path = self.config['model_path']
@@ -95,29 +130,34 @@ class AntColonyOptimizee(Optimizee):
         # call netlogo
         subdir_path = os.path.join(self.dir_path, model_name)
         python_file = os.path.join(self.fp, self.config['pynetlogo_model'])
-        print(python_file)
         try:
             if self.is_headless:
-                subprocess.run(['bash', '{}'.format(headless_path),
-                                '--model', '{}'.format(subdir_path),
-                                '--experiment', 'experiment1',
-                                '--table', 'table1.csv'],
-                               check=True)
+                subp = subprocess.Popen(['bash', '{}'.format(headless_path),
+                                         '--model', '{}'.format(subdir_path),
+                                        '--experiment', 'experiment1',
+                                         '--threads', '1'],
+                                        shell=False)
             else:
-                subprocess.run(['python', f'{python_file}',
-                                '--netlogo_home', f'{self.config["netlogo_home"]}',
-                                '--netlogo_version', f'{self.config["netlogo_version"]}',
-                                '--model', f'{subdir_path}',
-                                '--ticks', '10000',
-                                '--individual_no', f'{self.ind_idx}'
-                                ],
-                               check=True)
+                subp = subprocess.Popen(['python', f'{python_file}',
+                                         '--netlogo_home', f'{self.config["netlogo_home"]}',
+                                        '--netlogo_version', f'{self.config["netlogo_version"]}',
+                                         '--model', f'{subdir_path}',
+                                         '--ticks', '10000',
+                                         '--individual_no', f'{self.ind_idx}'
+                                         ],
+                                        shell=False)
         except subprocess.CalledProcessError as cpe:
             print('Optimizee process error {}'.format(cpe))
         file_path = os.path.join(
-            self.dir_path, f"individual_result_{self.ind_idx}.csv")
-        while not os.path.isfile(file_path):
+            self.dir_path, "individual_result.csv")
+        while True:
+            if os.path.isfile(file_path):
+                with open(file_path, 'r') as file:
+                    line = file.read()
+                    if line:
+                        break
             time.sleep(5)
+        subp.kill()
         # Read the results file after the netlogo run
         csv = pd.read_csv(file_path, header=None, na_filter=False)
         # We need the last row and first column
@@ -141,4 +181,7 @@ class AntColonyOptimizee(Optimizee):
         return (fitness,)
 
     def bounding_func(self, individual):
+        # clip the params
+        individual = {"weights": np.clip(individual['weights'], -20, 20),
+                      "delays": np.clip(individual['delays'], 1, 5)}
         return individual

@@ -11,19 +11,18 @@ def run_experiment():
     jube_params = {"exec": "python"}
     traj, _ = experiment.prepare_experiment(
         jube_parameter=jube_params, name="AC_GA_{}".format(datetime.now().strftime("%Y-%m-%d-%H_%M_%S")))
-
     # Optimizee params
     optimizee_parameters = AntColonyOptimizeeParameters(
         path=experiment.root_dir_path, seed=1, save_n_generation=10,
-        run_headless=False)
+        run_headless=True, load_parameter=False)
     optimizee = AntColonyOptimizee(traj, optimizee_parameters)
 
-    optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=4,
+    optimizer_parameters = GeneticAlgorithmParameters(seed=0, pop_size=8,
                                                       cx_prob=0.7,
                                                       mut_prob=0.5,
                                                       n_iteration=3,
-                                                      ind_prob=0.02,
-                                                      tourn_size=15,
+                                                      ind_prob=0.08,
+                                                      tourn_size=8,
                                                       mate_par=0.5,
                                                       mut_par=1
                                                       )
