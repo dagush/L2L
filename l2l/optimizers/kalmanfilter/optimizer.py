@@ -76,16 +76,13 @@ class EnsembleKalmanFilter(Optimizer):
         current_eval_pop = [dict_to_list(self.optimizee_create_individual(),
                                          get_dict_spec=False) for _ in
                             range(parameters.pop_size)]
-        # current_eval_pop = np.array(
-        #     dict_to_list(self.optimizee_create_individual(),
-        #                  get_dict_spec=False))
 
-        if optimizee_bounding_func is not None:
-            current_eval_pop = [self.optimizee_bounding_func(ind) for ind in
-                                current_eval_pop]
-        # self.eval_pop = current_eval_pop
         self.eval_pop = [list_to_dict(current_eval_pop[i], self.optimizee_individual_dict_spec[i])
                          for i in range(parameters.pop_size)]
+
+        if optimizee_bounding_func is not None:
+            self.eval_pop = [self.optimizee_bounding_func(ind) for ind in
+                             self.eval_pop]
 
         self.best_individual = []
         self.current_fitness = np.inf
@@ -145,7 +142,7 @@ class EnsembleKalmanFilter(Optimizer):
         else:
             new_individual_list = []
 
-        # Check this bounding function
+            # Check this bounding function
         if self.optimizee_bounding_func is not None:
             new_individual_list = [self.optimizee_bounding_func(ind) for
                                    ind in new_individual_list]
