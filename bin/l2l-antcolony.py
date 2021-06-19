@@ -29,7 +29,8 @@ def run_experiment():
 
     optimizer = GeneticAlgorithmOptimizer(traj, optimizee_create_individual=optimizee.create_individual,
                                           optimizee_fitness_weights=(1,),
-                                          parameters=optimizer_parameters)
+                                          parameters=optimizer_parameters,
+                                          optimizee_bounding_func=optimizee.bounding_func)
     # Run experiment
     experiment.run_experiment(optimizer=optimizer, optimizee=optimizee,
                               optimizer_parameters=optimizer_parameters,
