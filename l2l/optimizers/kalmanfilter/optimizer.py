@@ -81,7 +81,7 @@ class EnsembleKalmanFilter(Optimizer):
             self.eval_pop = [self.optimizee_bounding_func(ind) for ind in
                              self.eval_pop]
 
-        self.current_fitness = np.inf
+        self.current_fitness = -np.inf
         self.best_individual = {'generation': 0,
                                 'individual': 0,
                                 'fitness': self.current_fitness}
