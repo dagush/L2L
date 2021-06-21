@@ -102,7 +102,7 @@ class EnsembleKalmanFilter(Optimizer):
         self.current_fitness = np.max(fitness)
         if self.current_fitness > self.best_individual['fitness']:
             self.best_individual['fitness'] = self.current_fitness
-            self.best_individual['individual'] = np.argmax(weights)
+            self.best_individual['individual'] = np.argmax(fitness)
             self.best_individual['generation'] = self.g
         ens = np.array(weights)
         # sort from best to worst
