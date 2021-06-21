@@ -63,10 +63,7 @@ class EnsembleKalmanFilter(Optimizer):
 
         # Set the random state seed for distribution
         self.random_state = np.random.RandomState(traj.parameters.seed)
-        #: The population (i.e. list of individuals) to be evaluated at the
-        # next iteration
-        # current_eval_pop = [self.optimizee_create_individual() for _ in
-        #                     range(parameters.pop_size)]
+
         self.optimizee_individual_dict_spec = []
         for i in range(parameters.pop_size):
             _, dict_spec = dict_to_list(
@@ -84,8 +81,10 @@ class EnsembleKalmanFilter(Optimizer):
             self.eval_pop = [self.optimizee_bounding_func(ind) for ind in
                              self.eval_pop]
 
-        self.best_individual = []
         self.current_fitness = np.inf
+        self.best_individual = {'generation': 0,
+                                'individual': 0,
+                                'fitness': self.current_fitness}
         # TODO create observations
         self.observations = [50]
         self.g = 0
@@ -101,6 +100,10 @@ class EnsembleKalmanFilter(Optimizer):
                    for i in range(ensemble_size)]
         fitness = np.squeeze(list(dict(fitnesses_results).values()))
         self.current_fitness = np.max(fitness)
+        if self.current_fitness > self.best_individual['fitness']:
+            self.best_individual['fitness'] = self.current_fitness
+            self.best_individual['individual'] = np.argmax(weights)
+            self.best_individual['generation'] = self.g
         ens = np.array(weights)
         # sort from best to worst
         best_indviduals = np.argsort(fitness)[::-1]
