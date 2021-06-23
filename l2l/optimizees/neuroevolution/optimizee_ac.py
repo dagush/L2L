@@ -3,16 +3,22 @@ import numpy as np
 import os
 import pandas as pd
 import pathlib
-import pickle
 import shutil
 import subprocess
 import time
 from collections import namedtuple
 from l2l.optimizees.optimizee import Optimizee
+# Depending on the Python version pickle cannot unpickle the highest
+# protocol (5), that is why we monkey patch pickle with pickle5
+try:
+    import pickle5 as pickle
+except ModuleNotFoundError:
+    import pickle
 
 AntColonyOptimizeeParameters = namedtuple(
     'AntColonyOptimizeeParameters', ['path', 'seed', 'save_n_generation',
-                                     'run_headless', 'load_parameter'])
+                                     'run_headless', 'load_parameter',
+                                     'normalize'])
 
 
 class AntColonyOptimizee(Optimizee):
@@ -27,6 +33,9 @@ class AntColonyOptimizee(Optimizee):
         self.fp = pathlib.Path(__file__).parent.absolute()
         self.is_headless = parameters.run_headless
         self.load_parameter = parameters.load_parameter
+        self.normalize = parameters.normalize
+        self.max_weights = 1.
+        self.max_delays = 1.
         print(os.path.join(str(self.fp), 'config.json'))
         with open(
                 os.path.join(str(self.fp), 'config.json')) as jsonfile:
@@ -99,6 +108,10 @@ class AntColonyOptimizee(Optimizee):
 
         weights = traj.individual.weights
         delays = traj.individual.delays
+        # Get the old ranges before the normalization
+        if self.normalize:
+            weights *= self.max_weights
+            delays *= self.max_delays
 
         # create directory individualN
         self.dir_path = os.path.join(self.param_path,
@@ -134,13 +147,13 @@ class AntColonyOptimizee(Optimizee):
             if self.is_headless:
                 subp = subprocess.Popen(['bash', '{}'.format(headless_path),
                                          '--model', '{}'.format(subdir_path),
-                                        '--experiment', 'experiment1',
+                                         '--experiment', 'experiment1',
                                          '--threads', '1'],
                                         shell=False)
             else:
                 subp = subprocess.Popen(['python', f'{python_file}',
                                          '--netlogo_home', f'{self.config["netlogo_home"]}',
-                                        '--netlogo_version', f'{self.config["netlogo_version"]}',
+                                         '--netlogo_version', f'{self.config["netlogo_version"]}',
                                          '--model', f'{subdir_path}',
                                          '--ticks', '10000',
                                          '--individual_no', f'{self.ind_idx}'
@@ -156,7 +169,7 @@ class AntColonyOptimizee(Optimizee):
                     line = file.read()
                     if line:
                         break
-            time.sleep(5)
+            time.sleep(3)
         subp.kill()
         # Read the results file after the netlogo run
         csv = pd.read_csv(file_path, header=None, na_filter=False)
@@ -181,7 +194,15 @@ class AntColonyOptimizee(Optimizee):
         return (fitness,)
 
     def bounding_func(self, individual):
-        # clip the params
-        individual = {"weights": np.clip(individual['weights'], -20, 20),
-                      "delays": np.clip(individual['delays'], 1, 5)}
+        # clip the params and normalize
+        weights = np.clip(individual['weights'], -20, 20)
+        delays = np.clip(individual['delays'], 1, 5)
+        if self.normalize:
+            self.max_weights = np.max(np.abs(weights))
+            weights /= self.max_weights
+            self.max_delays = np.max(delays)
+            delays /= self.max_delays
+        # create the bounded individual
+        individual = {"weights": weights,
+                      "delays": delays}
         return individual
